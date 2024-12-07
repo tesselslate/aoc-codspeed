@@ -1,2 +1,5 @@
 [toolchain]
-toolchain = "nightly-2024-12-06-x86_64-unknown-linux-gnu"
+toolchain = "nightly-2024-12-06"
+components = ["cargo", "rust-std", "rustc"]
+targets = ["x86_64-unknown-linux-gnu"]
+profile = "minimal"
