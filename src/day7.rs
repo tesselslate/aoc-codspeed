@@ -1,3 +1,5 @@
+use std::hint::unreachable_unchecked;
+
 use memchr::memchr;
 
 /*
@@ -37,6 +39,29 @@ fn get_nums<'a>(l: &[u8], storage: &'a mut [u64; NUM_LIMIT]) -> (u64, &'a [u64])
     (target, &storage[..j + 1])
 }
 
+fn unconcat(have: u64, concat: u64) -> Option<u64> {
+    // if have ends with concat:
+    //   Some( have without the concat digits )
+    // else:
+    //   None
+    //
+    // have ends with concat IF:
+    //   (have % 10^int(log10(concat))) == concat
+
+    let modulo = match concat {
+        ..10 => 10,
+        ..100 => 100,
+        ..1000 => 1000,
+        _ => unsafe { unreachable_unchecked() },
+    };
+
+    if have % modulo == concat {
+        Some(have / modulo)
+    } else {
+        None
+    }
+}
+
 fn backtrack(target: u64, nums: &[u64]) -> bool {
     let &last = unsafe { nums.last().unwrap_unchecked() };
 
@@ -56,6 +81,32 @@ fn backtrack(target: u64, nums: &[u64]) -> bool {
     }
 }
 
+fn backtrack_concat(target: u64, nums: &[u64]) -> bool {
+    let &last = unsafe { nums.last().unwrap_unchecked() };
+
+    if nums.len() == 1 {
+        target == last
+    } else {
+        let next = unsafe { nums.get_unchecked(..nums.len() - 1) };
+        let overflow = target < last;
+
+        let ok = if target % last == 0 {
+            backtrack_concat(target / last, next)
+                || (!overflow && backtrack_concat(target - last, next))
+        } else if !overflow {
+            backtrack_concat(target - last, next)
+        } else {
+            false
+        };
+
+        ok || if let Some(x) = unconcat(target, last) {
+            backtrack_concat(x, next)
+        } else {
+            false
+        }
+    }
+}
+
 fn process_p1(l: &str) -> u64 {
     let mut storage = [0u64; NUM_LIMIT];
 
@@ -68,12 +119,24 @@ fn process_p1(l: &str) -> u64 {
     }
 }
 
+fn process_p2(l: &str) -> u64 {
+    let mut storage = [0u64; NUM_LIMIT];
+
+    let (target, nums) = get_nums(l.as_bytes(), &mut storage);
+
+    if backtrack_concat(target, nums) {
+        target
+    } else {
+        0
+    }
+}
+
 pub fn part1(input: &str) -> u64 {
     input.lines().map(|l| process_p1(l)).sum()
 }
 
 pub fn part2(input: &str) -> u64 {
-    0
+    input.lines().map(|l| process_p2(l)).sum()
 }
 
 #[cfg(test)]
