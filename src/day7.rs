@@ -43,7 +43,7 @@ fn backtrack(target: u64, nums: &[u64]) -> bool {
     if nums.len() == 1 {
         target == last
     } else {
-        let next = &nums[..nums.len() - 1];
+        let next = unsafe { nums.get_unchecked(..nums.len() - 1) };
         let overflow = target < last;
 
         if target % last == 0 {
