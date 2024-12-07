@@ -1,4 +1,4 @@
-use std::hint::unreachable_unchecked;
+use std::{hint::unreachable_unchecked, intrinsics::assume};
 
 use memchr::memchr;
 
@@ -38,7 +38,7 @@ fn get_nums<'a>(l: &[u8], storage: &'a mut [u64; NUM_LIMIT]) -> (u64, &'a [u64])
             }
         }
 
-        (target, &storage[..j + 1])
+        (target, storage.get_unchecked(..j + 1))
     }
 }
 
@@ -72,15 +72,15 @@ fn backtrack(target: u64, nums: &[u64]) -> bool {
         target == last
     } else {
         let next = unsafe { nums.get_unchecked(..nums.len() - 1) };
-        let overflow = target < last;
 
-        if target % last == 0 {
-            backtrack(target / last, next) || (!overflow && backtrack(target - last, next))
-        } else if !overflow {
-            backtrack(target - last, next)
-        } else {
-            false
+        if target % last == 0 && backtrack(target / last, next) {
+            return true;
         }
+        if target >= last && backtrack(target - last, next) {
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -91,22 +91,20 @@ fn backtrack_concat(target: u64, nums: &[u64]) -> bool {
         target == last
     } else {
         let next = unsafe { nums.get_unchecked(..nums.len() - 1) };
-        let overflow = target < last;
 
-        let ok = if target % last == 0 {
-            backtrack_concat(target / last, next)
-                || (!overflow && backtrack_concat(target - last, next))
-        } else if !overflow {
-            backtrack_concat(target - last, next)
-        } else {
-            false
-        };
-
-        ok || if let Some(x) = unconcat(target, last) {
-            backtrack_concat(x, next)
-        } else {
-            false
+        if let Some(x) = unconcat(target, last)
+            && backtrack_concat(x, next)
+        {
+            return true;
         }
+        if target % last == 0 && backtrack_concat(target / last, next) {
+            return true;
+        }
+        if target >= last && backtrack_concat(target - last, next) {
+            return true;
+        }
+
+        return false;
     }
 }
 
