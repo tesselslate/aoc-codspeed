@@ -30,6 +30,7 @@ dependencies = [
  "aoc-runner",
  "aoc-runner-derive",
  "criterion",
+ "memchr",
 ]
 
 [[package]]
