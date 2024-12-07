@@ -1,3 +1,5 @@
+use std::hint::unreachable_unchecked;
+
 use aoc_codspeed::day6;
 use aoc_codspeed::day7;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
@@ -21,5 +23,58 @@ pub fn d7p2(c: &mut Criterion) {
     c.bench_function("7b", |b| b.iter(|| black_box(day7::part2(D7_INPUT))));
 }
 
+pub fn unconcat_me(c: &mut Criterion) {
+    c.bench_function("unconcat_me", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(me_unconcat(1234, i));
+            }
+        })
+    });
+}
+
+pub fn unconcat_ja(c: &mut Criterion) {
+    c.bench_function("unconcat_ja", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(ja_unconcat(1234, i));
+            }
+        })
+    });
+}
+
+fn ja_unconcat(have: u64, concat: u64) -> Option<u64> {
+    const LOG2_POW10: [u8; 16] = [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5];
+    const POW10: [u64; 6] = [0, 0, 10, 100, 1000, 10000];
+    const MOD: [u64; 6] = [0, 10, 100, 1000, 10000, 100000];
+
+    let idx = unsafe { *LOG2_POW10.get_unchecked(concat.ilog2() as usize) as usize };
+    let pow10 = unsafe { *POW10.get_unchecked(idx) };
+    let digits = idx - (concat < pow10) as usize;
+    let pow10 = unsafe { *MOD.get_unchecked(digits) };
+
+    if have % pow10 == concat {
+        Some(have / pow10)
+    } else {
+        None
+    }
+}
+
+fn me_unconcat(have: u64, concat: u64) -> Option<u64> {
+    let modulo = match concat {
+        ..10 => 10,
+        ..100 => 100,
+        ..1000 => 1000,
+        _ => unsafe { unreachable_unchecked() },
+    };
+
+    if have % modulo == concat {
+        Some(have / modulo)
+    } else {
+        None
+    }
+}
+
 criterion_group!(benches, d7p1, d7p2);
-criterion_main!(benches);
+criterion_group!(etc, unconcat_me, unconcat_ja);
+criterion_main!( etc);
