@@ -1,3 +1,6 @@
+#![feature(iter_array_chunks)]
+#![feature(portable_simd)]
+
 extern crate aoc_runner;
 
 #[macro_use]

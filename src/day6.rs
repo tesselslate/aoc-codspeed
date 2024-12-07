@@ -1,7 +1,12 @@
+use std::{
+    ops::{BitAnd, BitOrAssign, Shr},
+    simd::u64x4,
+};
+
 const LEN: usize = 130;
 const LEN_I: isize = LEN as isize;
 const SZ: usize = LEN * LEN;
-const BITMAP_U64_COUNT: usize = SZ.div_ceil(64);
+const BITMAP_U64_COUNT: usize = ((SZ.div_ceil(64) + 3) / 4) * 4;
 
 const DIRS: [(isize, isize); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
 
@@ -49,14 +54,23 @@ impl Visited {
 
     #[inline(always)]
     pub fn sum(&self) -> u32 {
+        let mask1 = u64x4::splat(0x1111111111111111);
+        let mask2 = u64x4::splat(0x2222222222222222);
+        let mask3 = u64x4::splat(0x4444444444444444);
+        let mask4 = u64x4::splat(0x8888888888888888);
+
         self.0
-            .iter()
+            .into_iter()
+            .array_chunks::<4>()
             .map(|x| {
-                let a = x & 0x1111111111111111;
-                let b = (x & 0x2222222222222222) >> 1;
-                let c = (x & 0x4444444444444444) >> 2;
-                let d = (x & 0x8888888888888888) >> 3;
-                (a | b | c | d).count_ones()
+                let mut sum = u64x4::splat(0);
+                let xs = u64x4::from(x);
+                sum.bitor_assign(xs.bitand(mask1));
+                sum.bitor_assign(xs.bitand(mask2).shr(1));
+                sum.bitor_assign(xs.bitand(mask3).shr(2));
+                sum.bitor_assign(xs.bitand(mask4).shr(3));
+
+                sum.as_array().iter().map(|x| x.count_ones()).sum::<u32>()
             })
             .sum()
     }
