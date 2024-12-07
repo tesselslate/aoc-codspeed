@@ -11,33 +11,35 @@ TODO:
     use inline asm for ja_unconcat
 */
 
-const NUM_LIMIT: usize = 16;
+const NUM_LIMIT: usize = 12;
 
 fn parse_u64(b: &[u8]) -> u64 {
     b.iter().fold(0, |acc, &b| acc * 10 + (b & 0xF) as u64)
 }
 
 fn get_nums<'a>(l: &[u8], storage: &'a mut [u64; NUM_LIMIT]) -> (u64, &'a [u64]) {
-    let colon = unsafe { memchr(b':', l).unwrap_unchecked() };
-    let target = parse_u64(unsafe { l.get_unchecked(..colon) });
+    unsafe {
+        let colon = memchr(b':', l).unwrap_unchecked();
+        let target = parse_u64(l.get_unchecked(..colon));
 
-    let mut i = colon + 2;
-    let mut j = 0;
-    loop {
-        match memchr(b' ', unsafe { l.get_unchecked(i..) }) {
-            Some(x) => {
-                storage[j] = parse_u64(unsafe { l.get_unchecked(i..i + x) });
-                j += 1;
-                i += x + 1;
-            }
-            None => {
-                storage[j] = parse_u64(unsafe { l.get_unchecked(i..) });
-                break;
+        let mut i = colon + 2;
+        let mut j = 0;
+        loop {
+            match memchr(b' ', l.get_unchecked(i..)) {
+                Some(x) => {
+                    *storage.get_unchecked_mut(j) = parse_u64(l.get_unchecked(i..i + x));
+                    j += 1;
+                    i += x + 1;
+                }
+                None => {
+                    *storage.get_unchecked_mut(j) = parse_u64(l.get_unchecked(i..));
+                    break;
+                }
             }
         }
-    }
 
-    (target, &storage[..j + 1])
+        (target, &storage[..j + 1])
+    }
 }
 
 fn unconcat(have: u64, concat: u64) -> Option<u64> {

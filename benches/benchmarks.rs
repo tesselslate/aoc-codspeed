@@ -87,4 +87,4 @@ fn me_unconcat(have: u64, concat: u64) -> Option<u64> {
 criterion_group!(d6, d6p1, d6p2);
 criterion_group!(d7, d7p1, d7p2);
 criterion_group!(d7_etc, unconcat_me, unconcat_ja);
-criterion_main!(d6);
+criterion_main!(d7);
