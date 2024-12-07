@@ -1,6 +1,8 @@
 #![feature(core_intrinsics)]
 
 use std::hint::unreachable_unchecked;
+use std::intrinsics::assume;
+use std::ptr;
 
 use aoc_codspeed::day6;
 use aoc_codspeed::day7;
@@ -48,20 +50,22 @@ pub fn unconcat_ja(c: &mut Criterion) {
 pub fn ja_unconcat(have: u64, concat: u64) -> Option<u64> {
     const LOG2_POW10: [u8; 16] = [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5];
     const POW10: [u64; 6] = [0, 0, 10, 100, 1000, 10000];
-    const MOD: [u64; 6] = [0, 10, 100, 1000, 10000, 100000];
 
-    let idx = unsafe {
-        *LOG2_POW10.get_unchecked(64u32.unchecked_sub(concat.leading_zeros()) as usize)
-            as usize
-    };
-    let pow10 = unsafe { *POW10.get_unchecked(idx) };
-    let digits = unsafe { idx.unchecked_sub((concat < pow10) as usize) };
-    let pow10 = unsafe { *MOD.get_unchecked(digits) };
+    unsafe {
+        let idx = *LOG2_POW10.get_unchecked(64u32.unchecked_sub(concat.leading_zeros()) as usize)
+            as usize;
 
-    if unsafe { core::intrinsics::unchecked_rem(have, pow10) } == concat {
-        Some(unsafe { core::intrinsics::unchecked_div(have, pow10) })
-    } else {
-        None
+        let pow10: *const u64 = ptr::from_ref(POW10.get_unchecked(idx));
+        let less: bool = concat >= *pow10;
+        let pow10 = *pow10.add((less as usize) * size_of::<u64>());
+
+        assume(pow10 != 0);
+
+        if have % pow10 == concat {
+            Some(have / pow10)
+        } else {
+            None
+        }
     }
 }
 
