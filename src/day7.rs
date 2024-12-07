@@ -65,31 +65,43 @@ fn unconcat(have: u64, concat: u64) -> Option<u64> {
     }
 }
 
-fn backtrack(target: u64, nums: &[u64]) -> bool {
-    let &last = unsafe { nums.last().unwrap_unchecked() };
+fn backtrack(mut target: u64, mut nums: &[u64]) -> bool {
+    let mut last = unsafe { *nums.last().unwrap_unchecked() };
 
     if nums.len() == 1 {
-        target == last
-    } else {
+        return target == last;
+    }
+
+    loop {
         let next = unsafe { nums.get_unchecked(..nums.len() - 1) };
 
         if target % last == 0 && backtrack(target / last, next) {
             return true;
         }
-        if target >= last && backtrack(target - last, next) {
-            return true;
-        }
 
-        return false;
+        // tail call addition
+        if target < last {
+            return false;
+        }
+        target -= last;
+
+        nums = next;
+        last = unsafe { *nums.last().unwrap_unchecked() };
+
+        if nums.len() == 1 {
+            return target == last;
+        }
     }
 }
 
-fn backtrack_concat(target: u64, nums: &[u64]) -> bool {
-    let &last = unsafe { nums.last().unwrap_unchecked() };
+fn backtrack_concat(mut target: u64, mut nums: &[u64]) -> bool {
+    let mut last = unsafe { *nums.last().unwrap_unchecked() };
 
     if nums.len() == 1 {
-        target == last
-    } else {
+        return target == last;
+    }
+
+    loop {
         let next = unsafe { nums.get_unchecked(..nums.len() - 1) };
 
         if let Some(x) = unconcat(target, last)
@@ -100,11 +112,19 @@ fn backtrack_concat(target: u64, nums: &[u64]) -> bool {
         if target % last == 0 && backtrack_concat(target / last, next) {
             return true;
         }
-        if target >= last && backtrack_concat(target - last, next) {
-            return true;
-        }
 
-        return false;
+        // tail call addition
+        if target < last {
+            return false;
+        }
+        target -= last;
+
+        nums = next;
+        last = unsafe { *nums.last().unwrap_unchecked() };
+
+        if nums.len() == 1 {
+            return target == last;
+        }
     }
 }
 
