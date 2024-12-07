@@ -8,6 +8,7 @@ TODO:
     parse_u64 and get_nums are slow af, it's like 60usec to process the whole file
     which is pretty bad
 
+    use inline asm for ja_unconcat
 */
 
 const NUM_LIMIT: usize = 16;
