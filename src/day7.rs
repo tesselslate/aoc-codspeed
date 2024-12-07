@@ -1,4 +1,4 @@
-use std::{hint::unreachable_unchecked, intrinsics::assume};
+use std::hint::unreachable_unchecked;
 
 use memchr::memchr;
 
@@ -108,10 +108,8 @@ fn backtrack_concat(target: u64, nums: &[u64]) -> bool {
     }
 }
 
-fn process_p1(l: &[u8]) -> u64 {
-    let mut storage = [0u64; NUM_LIMIT];
-
-    let (target, nums) = get_nums(l, &mut storage);
+fn process_p1(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> u64 {
+    let (target, nums) = get_nums(l, storage);
 
     if backtrack(target, nums) {
         target
@@ -120,10 +118,8 @@ fn process_p1(l: &[u8]) -> u64 {
     }
 }
 
-fn process_p2(l: &[u8]) -> u64 {
-    let mut storage = [0u64; NUM_LIMIT];
-
-    let (target, nums) = get_nums(l, &mut storage);
+fn process_p2(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> u64 {
+    let (target, nums) = get_nums(l, storage);
 
     if backtrack_concat(target, nums) {
         target
@@ -133,6 +129,8 @@ fn process_p2(l: &[u8]) -> u64 {
 }
 
 pub fn part1(input: &str) -> u64 {
+    let mut storage = [0u64; NUM_LIMIT];
+
     let bytes = input.as_bytes();
     let mut sum = 0;
 
@@ -141,11 +139,11 @@ pub fn part1(input: &str) -> u64 {
         loop {
             match memchr(b'\n', bytes.get_unchecked(i..)) {
                 Some(j) => {
-                    sum += process_p1(bytes.get_unchecked(i..i + j));
+                    sum += process_p1(bytes.get_unchecked(i..i + j), &mut storage);
                     i += j + 1;
                 }
                 None => {
-                    sum += process_p1(bytes.get_unchecked(i..));
+                    sum += process_p1(bytes.get_unchecked(i..), &mut storage);
                     return sum;
                 }
             }
@@ -154,6 +152,8 @@ pub fn part1(input: &str) -> u64 {
 }
 
 pub fn part2(input: &str) -> u64 {
+    let mut storage = [0u64; NUM_LIMIT];
+
     let bytes = input.as_bytes();
     let mut sum = 0;
 
@@ -162,11 +162,11 @@ pub fn part2(input: &str) -> u64 {
         loop {
             match memchr(b'\n', bytes.get_unchecked(i..)) {
                 Some(j) => {
-                    sum += process_p2(bytes.get_unchecked(i..i + j));
+                    sum += process_p2(bytes.get_unchecked(i..i + j), &mut storage);
                     i += j + 1;
                 }
                 None => {
-                    sum += process_p2(bytes.get_unchecked(i..));
+                    sum += process_p2(bytes.get_unchecked(i..), &mut storage);
                     return sum;
                 }
             }
