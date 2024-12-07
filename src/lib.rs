@@ -1,3 +1,4 @@
+#![feature(core_intrinsics)]
 #![feature(generic_arg_infer)]
 #![feature(iter_array_chunks)]
 #![feature(portable_simd)]

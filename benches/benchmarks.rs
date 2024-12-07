@@ -1,3 +1,5 @@
+#![feature(core_intrinsics)]
+
 use std::hint::unreachable_unchecked;
 
 use aoc_codspeed::day6;
@@ -43,18 +45,21 @@ pub fn unconcat_ja(c: &mut Criterion) {
     });
 }
 
-fn ja_unconcat(have: u64, concat: u64) -> Option<u64> {
+pub fn ja_unconcat(have: u64, concat: u64) -> Option<u64> {
     const LOG2_POW10: [u8; 16] = [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5];
     const POW10: [u64; 6] = [0, 0, 10, 100, 1000, 10000];
     const MOD: [u64; 6] = [0, 10, 100, 1000, 10000, 100000];
 
-    let idx = unsafe { *LOG2_POW10.get_unchecked(concat.ilog2() as usize) as usize };
+    let idx = unsafe {
+        *LOG2_POW10.get_unchecked(64u32.unchecked_sub(concat.leading_zeros()) as usize)
+            as usize
+    };
     let pow10 = unsafe { *POW10.get_unchecked(idx) };
-    let digits = idx - (concat < pow10) as usize;
+    let digits = unsafe { idx.unchecked_sub((concat < pow10) as usize) };
     let pow10 = unsafe { *MOD.get_unchecked(digits) };
 
-    if have % pow10 == concat {
-        Some(have / pow10)
+    if unsafe { core::intrinsics::unchecked_rem(have, pow10) } == concat {
+        Some(unsafe { core::intrinsics::unchecked_div(have, pow10) })
     } else {
         None
     }
@@ -76,5 +81,5 @@ fn me_unconcat(have: u64, concat: u64) -> Option<u64> {
 }
 
 criterion_group!(benches, d7p1, d7p2);
-criterion_group!(etc, unconcat_me, unconcat_ja);
-criterion_main!( etc);
+criterion_group!(d7_etc, unconcat_me, unconcat_ja);
+criterion_main!(d7_etc);
