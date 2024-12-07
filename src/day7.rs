@@ -39,18 +39,12 @@ fn get_nums<'a>(l: &[u8], storage: &'a mut [u64; NUM_LIMIT]) -> (u64, &'a [u64])
 
 fn backtrack(target: u64, nums: &[u64]) -> bool {
     let &last = unsafe { nums.last().unwrap_unchecked() };
-    let overflow = target <= last;
 
     if nums.len() == 1 {
-        if target % last == 0 {
-            target / last == 1 || (!overflow && target - last == 0)
-        } else if !overflow {
-            target - last == 0
-        } else {
-            false
-        }
+        target == last
     } else {
         let next = &nums[..nums.len() - 1];
+        let overflow = target < last;
 
         if target % last == 0 {
             backtrack(target / last, next) || (!overflow && backtrack(target - last, next))
