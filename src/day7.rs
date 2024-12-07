@@ -110,10 +110,10 @@ fn backtrack_concat(target: u64, nums: &[u64]) -> bool {
     }
 }
 
-fn process_p1(l: &str) -> u64 {
+fn process_p1(l: &[u8]) -> u64 {
     let mut storage = [0u64; NUM_LIMIT];
 
-    let (target, nums) = get_nums(l.as_bytes(), &mut storage);
+    let (target, nums) = get_nums(l, &mut storage);
 
     if backtrack(target, nums) {
         target
@@ -122,10 +122,10 @@ fn process_p1(l: &str) -> u64 {
     }
 }
 
-fn process_p2(l: &str) -> u64 {
+fn process_p2(l: &[u8]) -> u64 {
     let mut storage = [0u64; NUM_LIMIT];
 
-    let (target, nums) = get_nums(l.as_bytes(), &mut storage);
+    let (target, nums) = get_nums(l, &mut storage);
 
     if backtrack_concat(target, nums) {
         target
@@ -135,11 +135,45 @@ fn process_p2(l: &str) -> u64 {
 }
 
 pub fn part1(input: &str) -> u64 {
-    input.lines().map(|l| process_p1(l)).sum()
+    let bytes = input.as_bytes();
+    let mut sum = 0;
+
+    let mut i = 0;
+    unsafe {
+        loop {
+            match memchr(b'\n', bytes.get_unchecked(i..)) {
+                Some(j) => {
+                    sum += process_p1(bytes.get_unchecked(i..i + j));
+                    i += j + 1;
+                }
+                None => {
+                    sum += process_p1(bytes.get_unchecked(i..));
+                    return sum;
+                }
+            }
+        }
+    }
 }
 
 pub fn part2(input: &str) -> u64 {
-    input.lines().map(|l| process_p2(l)).sum()
+    let bytes = input.as_bytes();
+    let mut sum = 0;
+
+    let mut i = 0;
+    unsafe {
+        loop {
+            match memchr(b'\n', bytes.get_unchecked(i..)) {
+                Some(j) => {
+                    sum += process_p2(bytes.get_unchecked(i..i + j));
+                    i += j + 1;
+                }
+                None => {
+                    sum += process_p2(bytes.get_unchecked(i..));
+                    return sum;
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -161,11 +195,11 @@ mod tests {
 
     #[test]
     fn test_a() {
-        assert_eq!(part1(TEST), 3749);
+        assert_eq!(part1(&TEST[..TEST.len() - 1]), 3749);
     }
 
     #[test]
     fn test_b() {
-        assert_eq!(part2(TEST), 11387);
+        assert_eq!(part2(&TEST[..TEST.len() - 1]), 11387);
     }
 }
