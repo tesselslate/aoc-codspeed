@@ -159,7 +159,7 @@ fn navigate_p1<const N: isize>(grid: &Grid, mut pos: (isize, isize)) -> u32 {
 fn find_obstructions(grid: &mut Grid, start: (isize, isize)) -> u32 {
     let mut visited = Visited::default();
     let mut visited_any = [0u64; BITMAP_U64_COUNT];
-    let mut obstructions = [0u64; BITMAP_U64_COUNT];
+    let mut obstructions = 0;
 
     let mut pos = start;
     let mut dir = 0;
@@ -175,7 +175,7 @@ fn find_obstructions(grid: &mut Grid, start: (isize, isize)) -> u32 {
 
         let new = (pos.0 + dd.0, pos.1 + dd.1);
         if new.0 < 0 || new.1 < 0 || new.0 >= LEN as isize || new.1 >= LEN as isize {
-            return obstructions.iter().map(|u64| u64.count_ones()).sum();
+            return obstructions;
         }
 
         if grid.get(new) {
@@ -188,8 +188,10 @@ fn find_obstructions(grid: &mut Grid, start: (isize, isize)) -> u32 {
 
             if ((visited_any[idx] >> bit) & 1) == 0 {
                 grid.set(new, true);
-                if navigate(grid, pos, (dir + 1) % 4, &mut visited.clone()) {
-                    obstructions[idx] |= 1 << bit;
+                if visited.contains((dir + 1) % 4, pos)
+                    || navigate(grid, pos, (dir + 1) % 4, &mut visited.clone())
+                {
+                    obstructions += 1;
                 }
                 grid.set(new, false);
             }
