@@ -65,43 +65,31 @@ fn unconcat(have: u64, concat: u64) -> Option<u64> {
     }
 }
 
-fn backtrack(mut target: u64, mut nums: &[u64]) -> bool {
-    let mut last = unsafe { *nums.last().unwrap_unchecked() };
+fn backtrack(target: u64, nums: &[u64]) -> bool {
+    let &last = unsafe { nums.last().unwrap_unchecked() };
 
     if nums.len() == 1 {
-        return target == last;
-    }
-
-    loop {
+        target == last
+    } else {
         let next = unsafe { nums.get_unchecked(..nums.len() - 1) };
 
         if target % last == 0 && backtrack(target / last, next) {
             return true;
         }
-
-        // tail call addition
-        if target < last {
-            return false;
+        if target >= last && backtrack(target - last, next) {
+            return true;
         }
-        target -= last;
 
-        nums = next;
-        last = unsafe { *nums.last().unwrap_unchecked() };
-
-        if nums.len() == 1 {
-            return target == last;
-        }
+        return false;
     }
 }
 
-fn backtrack_concat(mut target: u64, mut nums: &[u64]) -> bool {
-    let mut last = unsafe { *nums.last().unwrap_unchecked() };
+fn backtrack_concat(target: u64, nums: &[u64]) -> bool {
+    let &last = unsafe { nums.last().unwrap_unchecked() };
 
     if nums.len() == 1 {
-        return target == last;
-    }
-
-    loop {
+        target == last
+    } else {
         let next = unsafe { nums.get_unchecked(..nums.len() - 1) };
 
         if let Some(x) = unconcat(target, last)
@@ -112,19 +100,11 @@ fn backtrack_concat(mut target: u64, mut nums: &[u64]) -> bool {
         if target % last == 0 && backtrack_concat(target / last, next) {
             return true;
         }
-
-        // tail call addition
-        if target < last {
-            return false;
+        if target >= last && backtrack_concat(target - last, next) {
+            return true;
         }
-        target -= last;
 
-        nums = next;
-        last = unsafe { *nums.last().unwrap_unchecked() };
-
-        if nums.len() == 1 {
-            return target == last;
-        }
+        return false;
     }
 }
 
