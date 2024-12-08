@@ -1,5 +1,3 @@
-use memchr::memchr;
-
 const LEN: usize = 50;
 const SZ: usize = LEN * LEN;
 const BSZ: usize = ((SZ.div_ceil(64) + 3) / 4) * 4;
@@ -53,10 +51,11 @@ impl Default for Points {
 }
 
 pub fn parse(input: &str, points: &mut Points) {
-    let mut input = input.as_bytes();
-    let mut row = 0;
+    let input = input.as_bytes();
 
     fn process_line(line: &[u8], row: i32, points: &mut Points) {
+        debug_assert!(line.len() == 50);
+
         line.iter().enumerate().for_each(|(i, c)| {
             if *c != b'.' {
                 let idx = *c as usize;
@@ -67,13 +66,11 @@ pub fn parse(input: &str, points: &mut Points) {
         });
     }
 
-    while let Some(end) = memchr(b'\n', input) {
-        process_line(&input[..end], row, points);
-
-        row += 1;
-        input = &input[end + 1..];
+    let mut offset = 0;
+    for row in 0..LEN {
+        process_line(&input[offset..offset + LEN], row as i32, points);
+        offset += LEN + 1;
     }
-    process_line(input, row, points);
 }
 
 pub fn match2_1(a: Point, b: Point, bitmap: &mut Bitmap) {
