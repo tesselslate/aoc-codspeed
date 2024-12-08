@@ -45,6 +45,21 @@ unsafe fn get_nums(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> (u64, *const u64
     (target, storage.as_ptr(), storage.as_ptr().add(j))
 }
 
+unsafe fn unconcat(have: u64, concat: u64) -> Option<u64> {
+    let modulo = match concat {
+        ..10 => 10,
+        ..100 => 100,
+        ..1000 => 1000,
+        _ => unsafe { std::hint::unreachable_unchecked() },
+    };
+
+    if have % modulo == concat {
+        Some(have / modulo)
+    } else {
+        None
+    }
+}
+
 unsafe fn backtrack(mut target: u64, start: *const u64, mut end: *const u64) -> bool {
     while start != end {
         let last = NonZeroU64::new_unchecked(*end);
@@ -52,6 +67,28 @@ unsafe fn backtrack(mut target: u64, start: *const u64, mut end: *const u64) -> 
 
         let (div, rem) = (target / last.get(), target % last.get());
         if rem == 0 && backtrack(div, start, end) {
+            return true;
+        }
+
+        target = target.wrapping_sub(last.get());
+    }
+
+    *start == target
+}
+
+unsafe fn backtrack_concat(mut target: u64, start: *const u64, mut end: *const u64) -> bool {
+    while start != end {
+        let last = NonZeroU64::new_unchecked(*end);
+        end = end.sub(1);
+
+        if let Some(x) = unconcat(target, last.get())
+            && backtrack_concat(x, start, end)
+        {
+            return true;
+        }
+
+        let (div, rem) = (target / last.get(), target % last.get());
+        if rem == 0 && backtrack_concat(div, start, end) {
             return true;
         }
 
@@ -72,14 +109,13 @@ unsafe fn process_p1(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> u64 {
 }
 
 unsafe fn process_p2(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> u64 {
-    0
-    // let (target, nums) = get_nums(l, storage);
-    //
-    // if backtrack_concat(target, nums) {
-    //     target
-    // } else {
-    //     0
-    // }
+    let (target, start, end) = get_nums(l, storage);
+
+    if backtrack_concat(target, start, end) {
+        target
+    } else {
+        0
+    }
 }
 
 unsafe fn inner_p1(input: &str) -> u64 {
