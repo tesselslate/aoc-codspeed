@@ -40,12 +40,12 @@ unsafe fn get_nums<'a>(l: &[u8], storage: &'a mut [u64; NUM_LIMIT]) -> (u64, &'a
     (target, storage.get_unchecked(..j + 1))
 }
 
-unsafe fn backtrack(mut target: u64, mut nums: &[u64]) -> bool {
-    while nums.len() > 1 {
-        let b = NonZeroU64::try_from(*nums.get_unchecked(nums.len() - 1)).unwrap_unchecked();
+unsafe fn backtrack(mut target: u64, start: *const u64, mut end: *const u64) -> bool {
+    while start != end {
+        let b = NonZeroU64::try_from(*end).unwrap_unchecked();
 
         let (div, rem) = (target / b.get(), target % b.get());
-        if rem == 0 && backtrack(div, nums.get_unchecked(..nums.len() - 1)) {
+        if rem == 0 && backtrack(div, start, end.sub(1)) {
             return true;
         }
 
@@ -55,16 +55,16 @@ unsafe fn backtrack(mut target: u64, mut nums: &[u64]) -> bool {
         }
 
         target = sub;
-        nums = nums.get_unchecked(..nums.len() - 1);
+        end = end.sub(1);
     }
 
-    *nums.get_unchecked(0) == target
+    *start == target
 }
 
 unsafe fn process_p1(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> u64 {
     let (target, nums) = get_nums(l, storage);
 
-    if backtrack(target, nums) {
+    if backtrack(target, nums.as_ptr(), nums.as_ptr_range().end.sub(1)) {
         target
     } else {
         0
