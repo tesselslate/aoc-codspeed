@@ -63,46 +63,65 @@ unsafe fn unconcat(have: u64, concat: u64) -> Option<u64> {
     }
 }
 
-unsafe fn backtrack(mut target: u64, mut nums: &[u64]) -> bool {
-    while nums.len() > 1 {
-        let next = nums.get_unchecked(..nums.len() - 1);
-        let last = *nums.get_unchecked(nums.len() - 1);
-        std::intrinsics::assume(last > 0);
+unsafe fn backtrack(target: u64, nums: &[u64]) -> bool {
+    let &last = nums.last().unwrap_unchecked();
+    std::intrinsics::assume(last > 0);
 
-        let (div, rem) = (target / last, target % last);
-        if rem == 0 && backtrack(div, next) {
+    if nums.len() == 2 {
+        if target % last == 0 && target / last == *nums.get_unchecked(0) {
+            true
+        } else if target.wrapping_sub(last) == *nums.get_unchecked(0) {
+            true
+        } else {
+            false
+        }
+    } else {
+        let next = nums.get_unchecked(..nums.len() - 1);
+
+        if target % last == 0 && backtrack(target / last, next) {
+            return true;
+        }
+        if target >= last && backtrack(target - last, next) {
             return true;
         }
 
-        target -= last;
-        nums = next;
+        return false;
     }
-
-    target == nums[0]
 }
 
-unsafe fn backtrack_concat(mut target: u64, mut nums: &[u64]) -> bool {
-    while nums.len() > 1 {
+unsafe fn backtrack_concat(target: u64, nums: &[u64]) -> bool {
+    let &last = nums.last().unwrap_unchecked();
+    std::intrinsics::assume(last > 0);
+
+    if nums.len() == 2 {
+        if let Some(x) = unconcat(target, last)
+            && x == *nums.get_unchecked(0)
+        {
+            true
+        } else if target % last == 0 && target / last == *nums.get_unchecked(0) {
+            true
+        } else if target.wrapping_sub(last) == *nums.get_unchecked(0) {
+            true
+        } else {
+            false
+        }
+    } else {
         let next = nums.get_unchecked(..nums.len() - 1);
-        let last = *nums.get_unchecked(nums.len() - 1);
-        std::intrinsics::assume(last > 0);
 
         if let Some(x) = unconcat(target, last)
             && backtrack_concat(x, next)
         {
             return true;
         }
-
-        let (div, rem) = (target / last, target % last);
-        if rem == 0 && backtrack_concat(div, next) {
+        if target % last == 0 && backtrack_concat(target / last, next) {
+            return true;
+        }
+        if target >= last && backtrack_concat(target.unchecked_sub(last), next) {
             return true;
         }
 
-        target -= last;
-        nums = next;
+        return false;
     }
-
-    target == nums[0]
 }
 
 unsafe fn process_p1(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> u64 {
