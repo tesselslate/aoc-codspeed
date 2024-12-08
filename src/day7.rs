@@ -42,19 +42,14 @@ unsafe fn get_nums(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> (u64, *const u64
 
 unsafe fn backtrack(mut target: u64, start: *const u64, mut end: *const u64) -> bool {
     while start != end {
-        let b = NonZeroU64::try_from(*end).unwrap_unchecked();
+        let last = NonZeroU64::new_unchecked(*end);
 
-        let (div, rem) = (target / b.get(), target % b.get());
+        let (div, rem) = (target / last.get(), target % last.get());
         if rem == 0 && backtrack(div, start, end.sub(1)) {
             return true;
         }
 
-        let sub = target.wrapping_sub(b.get());
-        if sub > target {
-            return false;
-        }
-
-        target = sub;
+        target = target.wrapping_sub(last.get());
         end = end.sub(1);
     }
 
