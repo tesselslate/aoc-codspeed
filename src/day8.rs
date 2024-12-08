@@ -1,10 +1,9 @@
 const LEN: usize = 50;
 const SZ: usize = LEN * LEN;
-const BSZ: usize = ((SZ.div_ceil(64) + 3) / 4) * 4;
 const NODES: usize = 128;
 
 #[derive(Copy, Clone)]
-pub struct Bitmap([u64; BSZ]);
+pub struct Bitmap([u8; SZ]);
 
 #[derive(Copy, Clone)]
 pub struct Point(pub i32, pub i32);
@@ -16,25 +15,21 @@ pub struct Points {
 
 impl Default for Bitmap {
     fn default() -> Self {
-        Bitmap([0; BSZ])
+        Bitmap([0; SZ])
     }
 }
 
 impl Bitmap {
     #[inline]
     pub fn set(&mut self, pt: Point) {
-        let pos = pt.0 as usize * LEN + pt.1 as usize;
-        let idx = pos / 64;
-        let bit = pos % 64;
-
-        self.0[idx] |= 1 << bit;
+        self.0[pt.0 as usize * LEN + pt.1 as usize] = 1;
     }
 
     #[inline]
-    pub fn sum(&self) -> u32 {
-        #[target_feature(enable = "popcnt")]
-        unsafe fn sum_inner(this: &Bitmap) -> u32 {
-            this.0.iter().map(|x| x.count_ones()).sum()
+    pub fn sum(&self) -> usize {
+        #[target_feature(enable = "avx,avx2")]
+        unsafe fn sum_inner(this: &Bitmap) -> usize {
+            this.0.iter().filter(|&&x| x != 0).count()
         }
 
         unsafe { sum_inner(self) }
@@ -168,7 +163,7 @@ pub fn antinodes_2(points: &Points, bitmap: &mut Bitmap) {
     }
 }
 
-pub fn part1(input: &str) -> u32 {
+pub fn part1(input: &str) -> usize {
     let mut points = Points::default();
     let mut bitmap = Bitmap::default();
     parse(input, &mut points);
@@ -177,7 +172,7 @@ pub fn part1(input: &str) -> u32 {
     bitmap.sum()
 }
 
-pub fn part2(input: &str) -> u32 {
+pub fn part2(input: &str) -> usize {
     let mut points = Points::default();
     let mut bitmap = Bitmap::default();
     parse(input, &mut points);
