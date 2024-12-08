@@ -1,3 +1,10 @@
+use std::ops::AddAssign;
+use std::simd::Mask;
+use std::{
+    ops::{Add, BitAnd},
+    simd::{cmp::SimdPartialOrd, i32x8},
+};
+
 const LEN: usize = 50;
 const SZ: usize = LEN * LEN;
 const BSZ: usize = ((SZ.div_ceil(64) + 3) / 4) * 4;
@@ -131,19 +138,68 @@ pub fn antinodes_1(points: &Points, bitmap: &mut Bitmap) {
     }
 }
 
+#[inline(always)]
 pub fn match2_2(a: Point, b: Point, bitmap: &mut Bitmap) {
-    let dr = a.0 - b.0;
-    let dc = a.1 - b.1;
+    #[target_feature(enable = "avx2")]
+    #[inline]
+    unsafe fn inner(a: Point, b: Point, bitmap: &mut Bitmap) {
+        let dr = a.0 - b.0;
+        let dc = a.1 - b.1;
 
-    let mut p = a;
-    loop {
-        if !(p.0 >= 0 && p.1 >= 0 && p.0 < LEN as i32 && p.1 < LEN as i32) {
-            return;
+        let zero = i32x8::splat(0);
+        let bounds = i32x8::splat(LEN as i32);
+
+        let drv = i32x8::from_array([
+            dr * 0,
+            dr * 1,
+            dr * 2,
+            dr * 3,
+            dr * 4,
+            dr * 5,
+            dr * 6,
+            dr * 7,
+        ]);
+        let dcv = i32x8::from_array([
+            dc * 0,
+            dc * 1,
+            dc * 2,
+            dc * 3,
+            dc * 4,
+            dc * 5,
+            dc * 6,
+            dc * 7,
+        ]);
+
+        let mut row: i32x8 = i32x8::splat(a.0).add(drv);
+        let mut col: i32x8 = i32x8::splat(a.1).add(dcv);
+
+        let drv = i32x8::splat(dr * 8);
+        let dcv = i32x8::splat(dc * 8);
+
+        loop {
+            let in_bounds = row
+                .simd_ge(zero)
+                .bitand(row.simd_lt(bounds))
+                .bitand(col.simd_ge(zero).bitand(col.simd_lt(bounds)));
+            if in_bounds.eq(&Mask::splat(false)) {
+                return;
+            }
+
+            let rows = row.to_array();
+            let cols = col.to_array();
+            let in_bounds = in_bounds.to_array();
+            for i in 0..8 {
+                if in_bounds[i] {
+                    bitmap.set(Point(rows[i], cols[i]));
+                }
+            }
+
+            row.add_assign(drv);
+            col.add_assign(dcv);
         }
-
-        bitmap.set(p);
-        p = Point(p.0 + dr, p.1 + dc);
     }
+
+    unsafe { inner(a, b, bitmap) }
 }
 
 pub fn match_2(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
