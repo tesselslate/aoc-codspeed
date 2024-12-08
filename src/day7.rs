@@ -1,3 +1,5 @@
+use std::num::NonZeroU64;
+
 use memchr::memchr;
 
 /*
@@ -38,101 +40,25 @@ unsafe fn get_nums<'a>(l: &[u8], storage: &'a mut [u64; NUM_LIMIT]) -> (u64, &'a
     (target, storage.get_unchecked(..j + 1))
 }
 
-#[inline(always)]
-unsafe fn unconcat(have: u64, concat: u64) -> Option<u64> {
-    // if have ends with concat:
-    //   Some( have without the concat digits )
-    // else:
-    //   None
-    //
-    // have ends with concat IF:
-    //   (have % 10^int(log10(concat))) == concat
+unsafe fn backtrack(mut target: u64, mut nums: &[u64]) -> bool {
+    while nums.len() > 1 {
+        let b = NonZeroU64::try_from(*nums.get_unchecked(nums.len() - 1)).unwrap_unchecked();
 
-    const POW: [u16; 1000] = {
-        let mut arr = [0; 1000];
-
-        let mut i = 0;
-        while i < arr.len() {
-            arr[i] = match i {
-                ..10 => 10,
-                ..100 => 100,
-                ..1000 => 1000,
-                _ => unreachable!(),
-            };
-            i += 1;
+        let (div, rem) = (target / b.get(), target % b.get());
+        if rem == 0 && backtrack(div, nums.get_unchecked(..nums.len() - 1)) {
+            return true;
         }
 
-        arr
-    };
+        let sub = target.wrapping_sub(b.get());
+        if sub > target {
+            return false;
+        }
 
-    let modulo = *POW.get_unchecked(concat as usize) as u64;
-
-    if have % modulo == concat {
-        Some(have / modulo)
-    } else {
-        None
+        target = sub;
+        nums = nums.get_unchecked(..nums.len() - 1);
     }
-}
 
-unsafe fn backtrack(target: u64, nums: &[u64]) -> bool {
-    let &last = nums.last().unwrap_unchecked();
-    std::intrinsics::assume(last > 0);
-
-    if nums.len() == 2 {
-        if target % last == 0 && target / last == *nums.get_unchecked(0) {
-            true
-        } else if target.wrapping_sub(last) == *nums.get_unchecked(0) {
-            true
-        } else {
-            false
-        }
-    } else {
-        let next = nums.get_unchecked(..nums.len() - 1);
-
-        if target % last == 0 && backtrack(target / last, next) {
-            return true;
-        }
-        if target >= last && backtrack(target - last, next) {
-            return true;
-        }
-
-        return false;
-    }
-}
-
-unsafe fn backtrack_concat(target: u64, nums: &[u64]) -> bool {
-    let &last = nums.last().unwrap_unchecked();
-    std::intrinsics::assume(last > 0);
-
-    if nums.len() == 2 {
-        if let Some(x) = unconcat(target, last)
-            && x == *nums.get_unchecked(0)
-        {
-            true
-        } else if target % last == 0 && target / last == *nums.get_unchecked(0) {
-            true
-        } else if target.wrapping_sub(last) == *nums.get_unchecked(0) {
-            true
-        } else {
-            false
-        }
-    } else {
-        let next = nums.get_unchecked(..nums.len() - 1);
-
-        if let Some(x) = unconcat(target, last)
-            && backtrack_concat(x, next)
-        {
-            return true;
-        }
-        if target % last == 0 && backtrack_concat(target / last, next) {
-            return true;
-        }
-        if target >= last && backtrack_concat(target.unchecked_sub(last), next) {
-            return true;
-        }
-
-        return false;
-    }
+    *nums.get_unchecked(0) == target
 }
 
 unsafe fn process_p1(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> u64 {
@@ -146,13 +72,14 @@ unsafe fn process_p1(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> u64 {
 }
 
 unsafe fn process_p2(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> u64 {
-    let (target, nums) = get_nums(l, storage);
-
-    if backtrack_concat(target, nums) {
-        target
-    } else {
-        0
-    }
+    0
+    // let (target, nums) = get_nums(l, storage);
+    //
+    // if backtrack_concat(target, nums) {
+    //     target
+    // } else {
+    //     0
+    // }
 }
 
 unsafe fn inner_p1(input: &str) -> u64 {
