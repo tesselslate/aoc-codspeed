@@ -17,7 +17,7 @@ unsafe fn parse_u64(b: &[u8]) -> u64 {
     b.iter().fold(0, |acc, &b| acc * 10 + (b & 0xF) as u64)
 }
 
-unsafe fn get_nums<'a>(l: &[u8], storage: &'a mut [u64; NUM_LIMIT]) -> (u64, &'a [u64]) {
+unsafe fn get_nums(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> (u64, *const u64, *const u64) {
     let colon = memchr(b':', l).unwrap_unchecked();
     let target = parse_u64(l.get_unchecked(..colon));
 
@@ -37,7 +37,7 @@ unsafe fn get_nums<'a>(l: &[u8], storage: &'a mut [u64; NUM_LIMIT]) -> (u64, &'a
         }
     }
 
-    (target, storage.get_unchecked(..j + 1))
+    (target, storage.as_ptr(), storage.as_ptr().add(j))
 }
 
 unsafe fn backtrack(mut target: u64, start: *const u64, mut end: *const u64) -> bool {
@@ -62,9 +62,9 @@ unsafe fn backtrack(mut target: u64, start: *const u64, mut end: *const u64) -> 
 }
 
 unsafe fn process_p1(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> u64 {
-    let (target, nums) = get_nums(l, storage);
+    let (target, start, end) = get_nums(l, storage);
 
-    if backtrack(target, nums.as_ptr(), nums.as_ptr_range().end.sub(1)) {
+    if backtrack(target, start, end) {
         target
     } else {
         0
