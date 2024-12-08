@@ -27,12 +27,7 @@ impl Bitmap {
 
     #[inline]
     pub fn sum(&self) -> usize {
-        #[target_feature(enable = "avx,avx2")]
-        unsafe fn sum_inner(this: &Bitmap) -> usize {
-            this.0.iter().filter(|&&x| x != 0).count()
-        }
-
-        unsafe { sum_inner(self) }
+        self.0.iter().filter(|&&x| x != 0).count()
     }
 }
 
