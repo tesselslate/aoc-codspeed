@@ -144,39 +144,13 @@ fn match2_2(a: Point, b: Point, bitmap: &mut Bitmap) {
     }
 }
 
-fn match3_2(points: &[Point; 4], bitmap: &mut Bitmap) {
-    match2_2(points[0], points[1], bitmap);
-    match2_2(points[0], points[2], bitmap);
-    match2_2(points[1], points[0], bitmap);
-    match2_2(points[1], points[2], bitmap);
-    match2_2(points[2], points[0], bitmap);
-    match2_2(points[2], points[1], bitmap);
-}
-
-fn match4_2(points: &[Point; 4], bitmap: &mut Bitmap) {
-    match2_2(points[0], points[1], bitmap);
-    match2_2(points[0], points[2], bitmap);
-    match2_2(points[0], points[3], bitmap);
-    match2_2(points[1], points[0], bitmap);
-    match2_2(points[1], points[2], bitmap);
-    match2_2(points[1], points[3], bitmap);
-    match2_2(points[2], points[0], bitmap);
-    match2_2(points[2], points[1], bitmap);
-    match2_2(points[2], points[3], bitmap);
-    match2_2(points[3], points[0], bitmap);
-    match2_2(points[3], points[1], bitmap);
-    match2_2(points[3], points[2], bitmap);
-}
-
 fn match_2(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
-    match len {
-        2 => {
-            match2_2(points[0], points[1], bitmap);
-            match2_2(points[1], points[0], bitmap);
+    for i in 0..len {
+        for j in 0..len {
+            if i != j {
+                match2_2(points[i as usize], points[j as usize], bitmap);
+            }
         }
-        3 => match3_2(points, bitmap),
-        4 => match4_2(points, bitmap),
-        _ => return,
     }
 }
 
