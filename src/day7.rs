@@ -71,6 +71,8 @@ unsafe fn backtrack(target: u64, nums: &[u64]) -> bool {
     } else {
         let next = nums.get_unchecked(..nums.len() - 1);
 
+        std::intrinsics::assume(last > 0);
+
         if target % last == 0 && backtrack(target / last, next) {
             return true;
         }
@@ -89,6 +91,8 @@ unsafe fn backtrack_concat(target: u64, nums: &[u64]) -> bool {
         target == last
     } else {
         let next = nums.get_unchecked(..nums.len() - 1);
+
+        std::intrinsics::assume(last > 0);
 
         if let Some(x) = unconcat(target, last)
             && backtrack_concat(x, next)
