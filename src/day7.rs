@@ -1,5 +1,3 @@
-use std::hint::unreachable_unchecked;
-
 use memchr::memchr;
 
 /*
@@ -40,6 +38,7 @@ unsafe fn get_nums<'a>(l: &[u8], storage: &'a mut [u64; NUM_LIMIT]) -> (u64, &'a
     (target, storage.get_unchecked(..j + 1))
 }
 
+#[inline(always)]
 unsafe fn unconcat(have: u64, concat: u64) -> Option<u64> {
     // if have ends with concat:
     //   Some( have without the concat digits )
@@ -49,12 +48,24 @@ unsafe fn unconcat(have: u64, concat: u64) -> Option<u64> {
     // have ends with concat IF:
     //   (have % 10^int(log10(concat))) == concat
 
-    let modulo = match concat {
-        ..10 => 10,
-        ..100 => 100,
-        ..1000 => 1000,
-        _ => unreachable_unchecked(),
+    const POW: [u16; 1000] = {
+        let mut arr = [0; 1000];
+
+        let mut i = 0;
+        while i < arr.len() {
+            arr[i] = match i {
+                ..10 => 10,
+                ..100 => 100,
+                ..1000 => 1000,
+                _ => unreachable!(),
+            };
+            i += 1;
+        }
+
+        arr
     };
+
+    let modulo = *POW.get_unchecked(concat as usize) as u64;
 
     if have % modulo == concat {
         Some(have / modulo)

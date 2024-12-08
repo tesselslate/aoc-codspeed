@@ -197,4 +197,4 @@ criterion_group!(d6, d6p1, d6p2);
 criterion_group!(d7, d7p1, d7p2);
 criterion_group!(d7_etc, unconcat_me, unconcat2_me, unconcat_ja);
 criterion_group!(d7_parse_g, bench_d7parse);
-criterion_main!(d7_parse_g);
+criterion_main!(d7, d7_parse_g);
