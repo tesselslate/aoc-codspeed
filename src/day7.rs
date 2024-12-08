@@ -13,25 +13,30 @@ TODO:
 
 const NUM_LIMIT: usize = 12;
 
-unsafe fn parse_u64(b: &[u8]) -> u64 {
-    b.iter().fold(0, |acc, &b| acc * 10 + (b & 0xF) as u64)
+unsafe fn parse_u64(mut start: *const u8, end: *const u8) -> u64 {
+    let mut acc = 0u64;
+    while start != end {
+        acc = acc * 10 + (*start & 0xF) as u64;
+        start = start.add(1);
+    }
+    acc
 }
 
 unsafe fn get_nums(l: &[u8], storage: &mut [u64; NUM_LIMIT]) -> (u64, *const u64, *const u64) {
     let colon = memchr(b':', l).unwrap_unchecked();
-    let target = parse_u64(l.get_unchecked(..colon));
+    let target = parse_u64(l.as_ptr(), l.as_ptr().add(colon));
 
     let mut i = colon + 2;
     let mut j = 0;
     loop {
         match memchr(b' ', l.get_unchecked(i..)) {
             Some(x) => {
-                *storage.get_unchecked_mut(j) = parse_u64(l.get_unchecked(i..i + x));
+                *storage.get_unchecked_mut(j) = parse_u64(l.as_ptr().add(i), l.as_ptr().add(i + x));
                 j += 1;
                 i += x + 1;
             }
             None => {
-                *storage.get_unchecked_mut(j) = parse_u64(l.get_unchecked(i..));
+                *storage.get_unchecked_mut(j) = parse_u64(l.as_ptr().add(i), l.as_ptr_range().end);
                 break;
             }
         }
