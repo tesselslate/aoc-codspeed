@@ -21,9 +21,8 @@ impl Default for Bitmap {
 }
 
 impl Bitmap {
-    #[target_feature(enable = "fma")]
     #[inline]
-    pub unsafe fn set(&mut self, pt: Point) {
+    pub fn set(&mut self, pt: Point) {
         let pos = pt.0 as usize * LEN + pt.1 as usize;
         let idx = pos / 64;
         let bit = pos % 64;
@@ -31,9 +30,8 @@ impl Bitmap {
         self.0[idx] |= 1 << bit;
     }
 
-    #[target_feature(enable = "fma")]
     #[inline]
-    pub unsafe fn sum(&self) -> u32 {
+    pub fn sum(&self) -> u32 {
         #[target_feature(enable = "popcnt")]
         unsafe fn sum_inner(this: &Bitmap) -> u32 {
             this.0.iter().map(|x| x.count_ones()).sum()
@@ -52,8 +50,7 @@ impl Default for Points {
     }
 }
 
-#[target_feature(enable = "fma")]
-pub unsafe fn parse(input: &str, points: &mut Points) {
+pub fn parse(input: &str, points: &mut Points) {
     let input = input.as_bytes();
 
     fn process_line(line: &[u8], row: i32, points: &mut Points) {
@@ -76,8 +73,7 @@ pub unsafe fn parse(input: &str, points: &mut Points) {
     }
 }
 
-#[target_feature(enable = "fma")]
-pub unsafe fn match2_1(a: Point, b: Point, bitmap: &mut Bitmap) {
+pub fn match2_1(a: Point, b: Point, bitmap: &mut Bitmap) {
     let dr = a.0 - b.0;
     let dc = a.1 - b.1;
 
@@ -87,8 +83,7 @@ pub unsafe fn match2_1(a: Point, b: Point, bitmap: &mut Bitmap) {
     }
 }
 
-#[target_feature(enable = "fma")]
-pub unsafe fn match3_1(points: &[Point; 4], bitmap: &mut Bitmap) {
+pub fn match3_1(points: &[Point; 4], bitmap: &mut Bitmap) {
     match2_1(points[0], points[1], bitmap);
     match2_1(points[0], points[2], bitmap);
     match2_1(points[1], points[0], bitmap);
@@ -97,8 +92,7 @@ pub unsafe fn match3_1(points: &[Point; 4], bitmap: &mut Bitmap) {
     match2_1(points[2], points[1], bitmap);
 }
 
-#[target_feature(enable = "fma")]
-pub unsafe fn match4_1(points: &[Point; 4], bitmap: &mut Bitmap) {
+pub fn match4_1(points: &[Point; 4], bitmap: &mut Bitmap) {
     match2_1(points[0], points[1], bitmap);
     match2_1(points[0], points[2], bitmap);
     match2_1(points[0], points[3], bitmap);
@@ -113,8 +107,7 @@ pub unsafe fn match4_1(points: &[Point; 4], bitmap: &mut Bitmap) {
     match2_1(points[3], points[2], bitmap);
 }
 
-#[target_feature(enable = "fma")]
-pub unsafe fn match_1(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
+pub fn match_1(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
     match len {
         2 => {
             match2_1(points[0], points[1], bitmap);
@@ -126,8 +119,7 @@ pub unsafe fn match_1(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
     }
 }
 
-#[target_feature(enable = "fma")]
-pub unsafe fn antinodes_1(points: &Points, bitmap: &mut Bitmap) {
+pub fn antinodes_1(points: &Points, bitmap: &mut Bitmap) {
     for i in b'0'..=b'9' {
         match_1(&points.data[i as usize], points.len[i as usize], bitmap);
     }
@@ -139,8 +131,7 @@ pub unsafe fn antinodes_1(points: &Points, bitmap: &mut Bitmap) {
     }
 }
 
-#[target_feature(enable = "fma")]
-pub unsafe fn match2_2(a: Point, b: Point, bitmap: &mut Bitmap) {
+pub fn match2_2(a: Point, b: Point, bitmap: &mut Bitmap) {
     let dr = a.0 - b.0;
     let dc = a.1 - b.1;
 
@@ -155,8 +146,7 @@ pub unsafe fn match2_2(a: Point, b: Point, bitmap: &mut Bitmap) {
     }
 }
 
-#[target_feature(enable = "fma")]
-pub unsafe fn match_2(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
+pub fn match_2(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
     for i in 0..len {
         for j in 0..len {
             if i != j {
@@ -166,8 +156,7 @@ pub unsafe fn match_2(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
     }
 }
 
-#[target_feature(enable = "fma")]
-pub unsafe fn antinodes_2(points: &Points, bitmap: &mut Bitmap) {
+pub fn antinodes_2(points: &Points, bitmap: &mut Bitmap) {
     for i in b'0'..=b'9' {
         match_2(&points.data[i as usize], points.len[i as usize], bitmap);
     }
@@ -182,23 +171,19 @@ pub unsafe fn antinodes_2(points: &Points, bitmap: &mut Bitmap) {
 pub fn part1(input: &str) -> u32 {
     let mut points = Points::default();
     let mut bitmap = Bitmap::default();
-    unsafe {
-        parse(input, &mut points);
-        antinodes_1(&points, &mut bitmap);
+    parse(input, &mut points);
+    antinodes_1(&points, &mut bitmap);
 
-        bitmap.sum()
-    }
+    bitmap.sum()
 }
 
 pub fn part2(input: &str) -> u32 {
     let mut points = Points::default();
     let mut bitmap = Bitmap::default();
-    unsafe {
-        parse(input, &mut points);
-        antinodes_2(&points, &mut bitmap);
+    parse(input, &mut points);
+    antinodes_2(&points, &mut bitmap);
 
-        bitmap.sum()
-    }
+    bitmap.sum()
 }
 
 #[cfg(test)]
