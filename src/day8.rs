@@ -6,12 +6,12 @@ const BSZ: usize = ((SZ.div_ceil(64) + 3) / 4) * 4;
 const NODES: usize = 128;
 
 #[derive(Copy, Clone)]
-struct Bitmap([u64; BSZ]);
+pub struct Bitmap([u64; BSZ]);
 
 #[derive(Copy, Clone)]
-struct Point(i32, i32);
+pub struct Point(i32, i32);
 
-struct Points {
+pub struct Points {
     data: [[Point; 4]; NODES],
     len: [u32; NODES],
 }
@@ -47,7 +47,7 @@ impl Default for Points {
     }
 }
 
-fn parse(input: &str, points: &mut Points) {
+pub fn parse(input: &str, points: &mut Points) {
     let mut input = input.as_bytes();
     let mut row = 0;
 
@@ -71,7 +71,7 @@ fn parse(input: &str, points: &mut Points) {
     process_line(input, row, points);
 }
 
-fn match2_1(a: Point, b: Point, bitmap: &mut Bitmap) {
+pub fn match2_1(a: Point, b: Point, bitmap: &mut Bitmap) {
     let dr = a.0 - b.0;
     let dc = a.1 - b.1;
 
@@ -81,7 +81,7 @@ fn match2_1(a: Point, b: Point, bitmap: &mut Bitmap) {
     }
 }
 
-fn match3_1(points: &[Point; 4], bitmap: &mut Bitmap) {
+pub fn match3_1(points: &[Point; 4], bitmap: &mut Bitmap) {
     match2_1(points[0], points[1], bitmap);
     match2_1(points[0], points[2], bitmap);
     match2_1(points[1], points[0], bitmap);
@@ -90,7 +90,7 @@ fn match3_1(points: &[Point; 4], bitmap: &mut Bitmap) {
     match2_1(points[2], points[1], bitmap);
 }
 
-fn match4_1(points: &[Point; 4], bitmap: &mut Bitmap) {
+pub fn match4_1(points: &[Point; 4], bitmap: &mut Bitmap) {
     match2_1(points[0], points[1], bitmap);
     match2_1(points[0], points[2], bitmap);
     match2_1(points[0], points[3], bitmap);
@@ -105,7 +105,7 @@ fn match4_1(points: &[Point; 4], bitmap: &mut Bitmap) {
     match2_1(points[3], points[2], bitmap);
 }
 
-fn match_1(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
+pub fn match_1(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
     match len {
         2 => {
             match2_1(points[0], points[1], bitmap);
@@ -117,7 +117,7 @@ fn match_1(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
     }
 }
 
-fn antinodes_1(points: &Points, bitmap: &mut Bitmap) {
+pub fn antinodes_1(points: &Points, bitmap: &mut Bitmap) {
     for i in b'0'..=b'9' {
         match_1(&points.data[i as usize], points.len[i as usize], bitmap);
     }
@@ -129,7 +129,7 @@ fn antinodes_1(points: &Points, bitmap: &mut Bitmap) {
     }
 }
 
-fn match2_2(a: Point, b: Point, bitmap: &mut Bitmap) {
+pub fn match2_2(a: Point, b: Point, bitmap: &mut Bitmap) {
     let dr = a.0 - b.0;
     let dc = a.1 - b.1;
 
@@ -144,7 +144,7 @@ fn match2_2(a: Point, b: Point, bitmap: &mut Bitmap) {
     }
 }
 
-fn match_2(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
+pub fn match_2(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
     for i in 0..len {
         for j in 0..len {
             if i != j {
@@ -154,7 +154,7 @@ fn match_2(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
     }
 }
 
-fn antinodes_2(points: &Points, bitmap: &mut Bitmap) {
+pub fn antinodes_2(points: &Points, bitmap: &mut Bitmap) {
     for i in b'0'..=b'9' {
         match_2(&points.data[i as usize], points.len[i as usize], bitmap);
     }
