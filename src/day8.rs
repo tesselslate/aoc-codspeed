@@ -9,7 +9,7 @@ const NODES: usize = 128;
 pub struct Bitmap([u64; BSZ]);
 
 #[derive(Copy, Clone)]
-pub struct Point(i32, i32);
+pub struct Point(pub i32, pub i32);
 
 pub struct Points {
     data: [[Point; 4]; NODES],
@@ -34,7 +34,12 @@ impl Bitmap {
 
     #[inline]
     pub fn sum(&self) -> u32 {
-        self.0.iter().map(|x| x.count_ones()).sum()
+        #[target_feature(enable = "popcnt")]
+        unsafe fn sum_inner(this: &Bitmap) -> u32 {
+            this.0.iter().map(|x| x.count_ones()).sum()
+        }
+
+        unsafe { sum_inner(self) }
     }
 }
 
@@ -189,7 +194,6 @@ mod tests {
     use super::*;
 
     const INPUT: &str = include_str!("../inputs/input8.txt");
-    const TEST: &str = include_str!("../testdata/input8.txt");
 
     #[test]
     fn a() {
