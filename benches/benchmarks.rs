@@ -1,5 +1,6 @@
 #![feature(core_intrinsics)]
 
+use std::array;
 use std::hint::unreachable_unchecked;
 use std::intrinsics::assume;
 use std::ptr;
@@ -31,7 +32,17 @@ pub fn unconcat_me(c: &mut Criterion) {
     c.bench_function("unconcat_me", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(me_unconcat(1234, i));
+                black_box(unsafe { me_unconcat(987, i) });
+            }
+        })
+    });
+}
+
+pub fn unconcat2_me(c: &mut Criterion) {
+    c.bench_function("unconcat2_me", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(unsafe { me_unconcat2(987, i) });
             }
         })
     });
@@ -41,13 +52,16 @@ pub fn unconcat_ja(c: &mut Criterion) {
     c.bench_function("unconcat_ja", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(ja_unconcat(1234, i));
+                black_box(unsafe { ja_unconcat(987, i) });
             }
         })
     });
 }
 
-pub fn ja_unconcat(have: u64, concat: u64) -> Option<u64> {
+#[target_feature(
+    enable = "avx,avx2,bmi1,bmi2,cmpxchg16b,fma,fxsr,lzcnt,movbe,pclmulqdq,popcnt,sse,sse2,sse3,sse4.1,sse4.2,ssse3"
+)]
+unsafe fn ja_unconcat(have: u64, concat: u64) -> Option<u64> {
     const LOG2_POW10: [u8; 16] = [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5];
     const POW10: [u64; 6] = [0, 0, 10, 100, 1000, 10000];
 
@@ -69,7 +83,10 @@ pub fn ja_unconcat(have: u64, concat: u64) -> Option<u64> {
     }
 }
 
-fn me_unconcat(have: u64, concat: u64) -> Option<u64> {
+#[target_feature(
+    enable = "avx,avx2,bmi1,bmi2,cmpxchg16b,fma,fxsr,lzcnt,movbe,pclmulqdq,popcnt,sse,sse2,sse3,sse4.1,sse4.2,ssse3"
+)]
+unsafe fn me_unconcat(have: u64, concat: u64) -> Option<u64> {
     let modulo = match concat {
         ..10 => 10,
         ..100 => 100,
@@ -84,7 +101,40 @@ fn me_unconcat(have: u64, concat: u64) -> Option<u64> {
     }
 }
 
+#[target_feature(
+    enable = "avx,avx2,bmi1,bmi2,cmpxchg16b,fma,fxsr,lzcnt,movbe,pclmulqdq,popcnt,sse,sse2,sse3,sse4.1,sse4.2,ssse3"
+)]
+unsafe fn me_unconcat2(have: u64, concat: u64) -> Option<u64> {
+    const POW: [u16; 1000] = {
+        let mut arr = [0; 1000];
+
+        let mut i = 0;
+        while i < arr.len() {
+            arr[i] = match i {
+                ..10 => 10,
+                ..100 => 100,
+                ..1000 => 1000,
+                _ => unreachable!(),
+            };
+            i += 1;
+        }
+
+        arr
+    };
+
+    let modulo = unsafe { *POW.get_unchecked(concat as usize) as u64 };
+    unsafe {
+        assume(modulo != 0);
+    }
+
+    if have % modulo == concat {
+        Some(have / modulo)
+    } else {
+        None
+    }
+}
+
 criterion_group!(d6, d6p1, d6p2);
 criterion_group!(d7, d7p1, d7p2);
-criterion_group!(d7_etc, unconcat_me, unconcat_ja);
+criterion_group!(d7_etc, unconcat_me, unconcat2_me, unconcat_ja);
 criterion_main!(d7);
