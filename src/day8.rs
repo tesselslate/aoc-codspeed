@@ -129,7 +129,68 @@ fn antinodes_1(points: &Points, bitmap: &mut Bitmap) {
     }
 }
 
-fn antinodes_2(points: &Points, bitmap: &mut Bitmap) {}
+fn match2_2(a: Point, b: Point, bitmap: &mut Bitmap) {
+    let dr = a.0 - b.0;
+    let dc = a.1 - b.1;
+
+    let mut p = a;
+    loop {
+        if !(p.0 >= 0 && p.1 >= 0 && p.0 < LEN as i32 && p.1 < LEN as i32) {
+            return;
+        }
+
+        bitmap.set(p);
+        p = Point(p.0 + dr, p.1 + dc);
+    }
+}
+
+fn match3_2(points: &[Point; 4], bitmap: &mut Bitmap) {
+    match2_2(points[0], points[1], bitmap);
+    match2_2(points[0], points[2], bitmap);
+    match2_2(points[1], points[0], bitmap);
+    match2_2(points[1], points[2], bitmap);
+    match2_2(points[2], points[0], bitmap);
+    match2_2(points[2], points[1], bitmap);
+}
+
+fn match4_2(points: &[Point; 4], bitmap: &mut Bitmap) {
+    match2_2(points[0], points[1], bitmap);
+    match2_2(points[0], points[2], bitmap);
+    match2_2(points[0], points[3], bitmap);
+    match2_2(points[1], points[0], bitmap);
+    match2_2(points[1], points[2], bitmap);
+    match2_2(points[1], points[3], bitmap);
+    match2_2(points[2], points[0], bitmap);
+    match2_2(points[2], points[1], bitmap);
+    match2_2(points[2], points[3], bitmap);
+    match2_2(points[3], points[0], bitmap);
+    match2_2(points[3], points[1], bitmap);
+    match2_2(points[3], points[2], bitmap);
+}
+
+fn match_2(points: &[Point; 4], len: u32, bitmap: &mut Bitmap) {
+    match len {
+        2 => {
+            match2_2(points[0], points[1], bitmap);
+            match2_2(points[1], points[0], bitmap);
+        }
+        3 => match3_2(points, bitmap),
+        4 => match4_2(points, bitmap),
+        _ => return,
+    }
+}
+
+fn antinodes_2(points: &Points, bitmap: &mut Bitmap) {
+    for i in b'0'..=b'9' {
+        match_2(&points.data[i as usize], points.len[i as usize], bitmap);
+    }
+    for i in b'A'..=b'Z' {
+        match_2(&points.data[i as usize], points.len[i as usize], bitmap);
+    }
+    for i in b'a'..=b'z' {
+        match_2(&points.data[i as usize], points.len[i as usize], bitmap);
+    }
+}
 
 pub fn part1(input: &str) -> u32 {
     let mut points = Points::default();
