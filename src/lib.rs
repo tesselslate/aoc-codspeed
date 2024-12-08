@@ -1,8 +1,5 @@
-#![feature(generic_arg_infer)]
 #![feature(iter_array_chunks)]
-#![feature(let_chains)]
 #![feature(portable_simd)]
-#![feature(ptr_sub_ptr)]
 
 extern crate aoc_runner;
 

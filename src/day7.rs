@@ -81,10 +81,10 @@ unsafe fn backtrack_concat(mut target: u64, start: *const u64, mut end: *const u
         let last = NonZeroU64::new_unchecked(*end);
         end = end.sub(1);
 
-        if let Some(x) = unconcat(target, last.get())
-            && backtrack_concat(x, start, end)
-        {
-            return true;
+        if let Some(x) = unconcat(target, last.get()) {
+            if backtrack_concat(x, start, end) {
+                return true;
+            }
         }
 
         let (div, rem) = (target / last.get(), target % last.get());
