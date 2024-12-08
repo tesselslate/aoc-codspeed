@@ -65,13 +65,18 @@ unsafe fn unconcat(have: u64, concat: u64) -> Option<u64> {
 
 unsafe fn backtrack(target: u64, nums: &[u64]) -> bool {
     let &last = nums.last().unwrap_unchecked();
+    std::intrinsics::assume(last > 0);
 
-    if nums.len() == 1 {
-        target == last
+    if nums.len() == 2 {
+        if target % last == 0 && target / last == *nums.get_unchecked(0) {
+            true
+        } else if target.wrapping_sub(last) == *nums.get_unchecked(0) {
+            true
+        } else {
+            false
+        }
     } else {
         let next = nums.get_unchecked(..nums.len() - 1);
-
-        std::intrinsics::assume(last > 0);
 
         if target % last == 0 && backtrack(target / last, next) {
             return true;
@@ -86,13 +91,22 @@ unsafe fn backtrack(target: u64, nums: &[u64]) -> bool {
 
 unsafe fn backtrack_concat(target: u64, nums: &[u64]) -> bool {
     let &last = nums.last().unwrap_unchecked();
+    std::intrinsics::assume(last > 0);
 
-    if nums.len() == 1 {
-        target == last
+    if nums.len() == 2 {
+        if let Some(x) = unconcat(target, last)
+            && x == *nums.get_unchecked(0)
+        {
+            true
+        } else if target % last == 0 && target / last == *nums.get_unchecked(0) {
+            true
+        } else if target.wrapping_sub(last) == *nums.get_unchecked(0) {
+            true
+        } else {
+            false
+        }
     } else {
         let next = nums.get_unchecked(..nums.len() - 1);
-
-        std::intrinsics::assume(last > 0);
 
         if let Some(x) = unconcat(target, last)
             && backtrack_concat(x, next)
@@ -102,7 +116,7 @@ unsafe fn backtrack_concat(target: u64, nums: &[u64]) -> bool {
         if target % last == 0 && backtrack_concat(target / last, next) {
             return true;
         }
-        if target >= last && backtrack_concat(target - last, next) {
+        if target >= last && backtrack_concat(target.unchecked_sub(last), next) {
             return true;
         }
 
