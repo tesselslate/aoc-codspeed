@@ -32,12 +32,7 @@ impl Bitmap {
 
     #[inline]
     pub fn sum(&self) -> u32 {
-        #[target_feature(enable = "popcnt")]
-        unsafe fn sum_inner(this: &Bitmap) -> u32 {
-            this.0.iter().map(|x| x.count_ones()).sum()
-        }
-
-        unsafe { sum_inner(self) }
+        self.0.iter().map(|x| x.count_ones()).sum()
     }
 }
 
