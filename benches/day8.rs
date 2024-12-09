@@ -9,36 +9,30 @@ pub fn d8_bitmap_sum(c: &mut Criterion) {
 }
 
 pub fn d8_parse(c: &mut Criterion) {
-    unsafe {
-        c.bench_function("8_parse", |b| {
-            b.iter(|| {
-                let mut points = Points::default();
-                black_box(day8::parse(D8_INPUT, &mut points));
-            })
-        });
-    }
+    c.bench_function("8_parse", |b| {
+        b.iter(|| {
+            let mut points = Points::default();
+            black_box(day8::parse(D8_INPUT, &mut points));
+        })
+    });
 }
 
 pub fn d8p1_inner(c: &mut Criterion) {
-    unsafe {
-        let mut points = Points::default();
-        let mut bitmap = Bitmap::default();
-        day8::parse(D8_INPUT, &mut points);
-        c.bench_function("8a_inner", |b| {
-            b.iter(|| black_box(day8::antinodes_1(&points, &mut bitmap)))
-        });
-    }
+    let mut points = Points::default();
+    let mut bitmap = Bitmap::default();
+    day8::parse(D8_INPUT, &mut points);
+    c.bench_function("8a_inner", |b| {
+        b.iter(|| black_box(day8::antinodes_1(&points, &mut bitmap)))
+    });
 }
 
 pub fn d8p2_inner(c: &mut Criterion) {
-    unsafe {
-        let mut points = Points::default();
-        let mut bitmap = Bitmap::default();
-        day8::parse(D8_INPUT, &mut points);
-        c.bench_function("8b_inner", |b| {
-            b.iter(|| black_box(day8::antinodes_2(&points, &mut bitmap)))
-        });
-    }
+    let mut points = Points::default();
+    let mut bitmap = Bitmap::default();
+    day8::parse(D8_INPUT, &mut points);
+    c.bench_function("8b_inner", |b| {
+        b.iter(|| black_box(day8::antinodes_2(&points, &mut bitmap)))
+    });
 }
 
 criterion_group!(d8_etc, d8_bitmap_sum, d8_parse, d8p1_inner, d8p2_inner);
