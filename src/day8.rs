@@ -61,6 +61,7 @@ pub fn parse(input: &str, points: &mut Points) {
         });
     }
 
+    _ = input[2548];
     let mut offset = 0;
     for row in 0..LEN {
         process_line(&input[offset..offset + LEN], row as i32, points);
