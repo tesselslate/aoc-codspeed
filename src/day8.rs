@@ -1,3 +1,8 @@
+use std::{
+    array,
+    simd::{cmp::SimdPartialEq, u8x16},
+};
+
 const LEN: usize = 50;
 const SZ: usize = LEN * LEN;
 const BSZ: usize = ((SZ.div_ceil(64) + 3) / 4) * 4;
@@ -45,26 +50,54 @@ impl Default for Points {
     }
 }
 
-pub fn parse(input: &str, points: &mut Points) {
+#[target_feature(enable = "sse,sse2,sse3,bmi1,bmi2")]
+pub unsafe fn parse(input: &str, points: &mut Points) {
     let input = input.as_bytes();
 
-    fn process_line(line: &[u8], row: i32, points: &mut Points) {
-        debug_assert!(line.len() == 50);
-
-        line.iter().enumerate().for_each(|(i, c)| {
-            if *c != b'.' {
-                let idx = *c as usize;
-
-                points.data[idx][points.len[idx] as usize] = Point(row, i as i32);
-                points.len[idx] += 1;
-            }
-        });
-    }
+    // line.iter().enumerate().for_each(|(i, c)| {
+    //     if *c != b'.' {
+    //         let idx = *c as usize;
+    //
+    //         points.data[idx][points.len[idx] as usize] = Point(row, i as i32);
+    //         points.len[idx] += 1;
+    //     }
+    // });
 
     _ = input[2548];
     let mut offset = 0;
+
+    let dot_mask = u8x16::splat(b'.');
     for row in 0..LEN {
-        process_line(&input[offset..offset + LEN], row as i32, points);
+        let line = &input[offset..];
+
+        for chunk_idx in 0..3 {
+            let chunk = array::from_fn(|i| line[chunk_idx * 16 + i]);
+            let chars = u8x16::from_array(chunk);
+            let neq = chars.simd_ne(dot_mask).to_bitmask() as usize;
+
+            for i in 0..16 {
+                if (neq & (1 << i)) != 0 {
+                    let idx = chunk[i] as usize;
+                    points.data[idx][points.len[idx] as usize] =
+                        Point(row as i32, (chunk_idx * 16 + i) as i32);
+                    points.len[idx] += 1;
+                }
+            }
+        }
+
+        if line[48] != b'.' {
+            let idx = line[48] as usize;
+
+            points.data[idx][points.len[idx] as usize] = Point(row as i32, 48);
+            points.len[idx] += 1;
+        }
+        if line[49] != b'.' {
+            let idx = line[49] as usize;
+
+            points.data[idx][points.len[idx] as usize] = Point(row as i32, 49);
+            points.len[idx] += 1;
+        }
+
         offset += LEN + 1;
     }
 }
@@ -167,7 +200,7 @@ pub fn antinodes_2(points: &Points, bitmap: &mut Bitmap) {
 pub fn part1(input: &str) -> u32 {
     let mut points = Points::default();
     let mut bitmap = Bitmap::default();
-    parse(input, &mut points);
+    unsafe { parse(input, &mut points) }
     antinodes_1(&points, &mut bitmap);
 
     bitmap.sum()
@@ -176,7 +209,7 @@ pub fn part1(input: &str) -> u32 {
 pub fn part2(input: &str) -> u32 {
     let mut points = Points::default();
     let mut bitmap = Bitmap::default();
-    parse(input, &mut points);
+    unsafe { parse(input, &mut points) }
     antinodes_2(&points, &mut bitmap);
 
     bitmap.sum()
