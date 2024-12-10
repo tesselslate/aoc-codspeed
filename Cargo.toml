@@ -10,6 +10,7 @@ bench = false
 lto = true
 codegen-units = 1
 opt-level = 3
+debug = true
 
 [[bench]]
 name = "benchmarks"
@@ -18,6 +19,11 @@ harness = false
 [[bench]]
 name = "day8"
 harness = false
+
+[[bin]]
+name = "day10"
+path = "src/bin/day10.rs"
+bench = false
 
 [dependencies]
 aoc-runner = "0.3.0"
