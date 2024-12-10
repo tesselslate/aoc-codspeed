@@ -1,28 +1,29 @@
-const BITMAP_LEN: usize = 64;
-const BITMAP_SZ: usize = BITMAP_LEN * BITMAP_LEN;
-const BITMAP_U64: usize = BITMAP_SZ / 64;
-
 const MAP_LEN: usize = 64;
 const MAP_SZ: usize = MAP_LEN * MAP_LEN;
 const MAP_ROW_OFFSET: usize = 1;
 
-struct Bitmap([u64; BITMAP_U64]);
+struct VisitMap([u16; MAP_SZ], u16);
 
-impl Default for Bitmap {
+impl Default for VisitMap {
     fn default() -> Self {
-        Self([0; BITMAP_U64])
+        Self([0; MAP_SZ], 0)
     }
 }
 
-impl Bitmap {
+impl VisitMap {
     #[inline]
     pub fn has(&mut self, row: usize, col: usize) -> bool {
-        (self.0[row] & (1 << col)) != 0
+        self.0[row * MAP_LEN + col] == self.1
     }
 
     #[inline]
     pub fn mark(&mut self, row: usize, col: usize) {
-        self.0[row] |= 1 << col;
+        self.0[row * MAP_LEN + col] = self.1
+    }
+
+    #[inline]
+    pub fn increment(&mut self) {
+        self.1 += 1;
     }
 }
 
@@ -74,23 +75,23 @@ impl Memo {
     }
 }
 
-fn recurse_p1(bits: &mut Bitmap, sum: &mut u32, map: &Map, r: usize, c: usize, value: i8) {
-    bits.mark(r as usize, c as usize);
+fn recurse_p1(visited: &mut VisitMap, sum: &mut u32, map: &Map, r: usize, c: usize, value: i8) {
+    visited.mark(r, c);
 
     let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
     for (r, c) in adj {
         let adj_value = map.get(r, c);
 
         if adj_value == value + 1 {
-            if bits.has(r as usize, c as usize) {
+            if visited.has(r, c) {
                 continue;
             }
 
             if adj_value == 9 {
-                bits.mark(r as usize, c as usize);
+                visited.mark(r, c);
                 *sum += 1;
             } else {
-                recurse_p1(bits, sum, map, r, c, adj_value);
+                recurse_p1(visited, sum, map, r, c, adj_value);
             }
         }
     }
@@ -99,6 +100,7 @@ fn recurse_p1(bits: &mut Bitmap, sum: &mut u32, map: &Map, r: usize, c: usize, v
 fn inner_p1<const LEN: usize>(input: &[u8]) -> u32 {
     let map = Map::new::<LEN>(input);
 
+    let mut visited = VisitMap::default();
     let mut sum = 0;
     for r in MAP_ROW_OFFSET..MAP_ROW_OFFSET + LEN {
         for c in MAP_ROW_OFFSET..MAP_ROW_OFFSET + LEN {
@@ -106,13 +108,13 @@ fn inner_p1<const LEN: usize>(input: &[u8]) -> u32 {
                 continue;
             }
 
-            let mut bits = Bitmap::default();
-            bits.mark(r as usize, c as usize);
+            visited.increment();
+            visited.mark(r as usize, c as usize);
 
             let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
             for (r, c) in adj {
                 if map.get(r, c) == 1 {
-                    recurse_p1(&mut bits, &mut sum, &map, r, c, 1);
+                    recurse_p1(&mut visited, &mut sum, &map, r, c, 1);
                 }
             }
         }
