@@ -30,7 +30,7 @@ struct Map([u8; MAP_SZ]);
 
 impl Map {
     pub fn new<const LEN: usize>(input: &[u8]) -> Self {
-        let mut map = Map([0xFF; MAP_SZ]);
+        let mut map = Map([0; MAP_SZ]);
 
         for row in 0..LEN {
             let dst_start = (row + 1) * MAP_LEN + MAP_ROW_OFFSET;
@@ -43,12 +43,12 @@ impl Map {
     }
 
     #[inline]
-    pub fn get(&self, row: usize, col: usize) -> i8 {
-        (self.0[row * MAP_LEN + col] - b'0') as i8
+    pub fn get(&self, row: usize, col: usize) -> u8 {
+        self.0[row * MAP_LEN + col]
     }
 }
 
-fn recurse_p1(bits: &mut Bitmap, sum: &mut u32, map: &Map, r: usize, c: usize, value: i8) {
+fn recurse_p1(bits: &mut Bitmap, sum: &mut u32, map: &Map, r: usize, c: usize, value: u8) {
     bits.mark(r as usize, c as usize);
 
     let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
@@ -60,7 +60,7 @@ fn recurse_p1(bits: &mut Bitmap, sum: &mut u32, map: &Map, r: usize, c: usize, v
                 continue;
             }
 
-            if adj_value == 9 {
+            if adj_value == b'9' {
                 bits.mark(r as usize, c as usize);
                 *sum += 1;
             } else {
@@ -76,7 +76,7 @@ fn inner_p1<const LEN: usize>(input: &[u8]) -> u32 {
     let mut sum = 0;
     for r in MAP_ROW_OFFSET..MAP_ROW_OFFSET + LEN {
         for c in MAP_ROW_OFFSET..MAP_ROW_OFFSET + LEN {
-            if map.get(r, c) != 0 {
+            if map.get(r, c) != b'0' {
                 continue;
             }
 
@@ -85,8 +85,8 @@ fn inner_p1<const LEN: usize>(input: &[u8]) -> u32 {
 
             let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
             for (r, c) in adj {
-                if map.get(r, c) == 1 {
-                    recurse_p1(&mut bits, &mut sum, &map, r, c, 1);
+                if map.get(r, c) == b'1' {
+                    recurse_p1(&mut bits, &mut sum, &map, r, c, b'1');
                 }
             }
         }
@@ -95,13 +95,13 @@ fn inner_p1<const LEN: usize>(input: &[u8]) -> u32 {
     sum
 }
 
-fn recurse_p2(sum: &mut u32, map: &Map, r: usize, c: usize, value: i8) {
+fn recurse_p2(sum: &mut u32, map: &Map, r: usize, c: usize, value: u8) {
     let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
     for (r, c) in adj {
         let adj_value = map.get(r, c);
 
         if adj_value == value + 1 {
-            if adj_value == 9 {
+            if adj_value == b'9' {
                 *sum += 1;
             } else {
                 recurse_p2(sum, map, r, c, adj_value);
@@ -116,14 +116,14 @@ fn inner_p2<const LEN: usize>(input: &[u8]) -> u32 {
     let mut sum = 0;
     for r in MAP_ROW_OFFSET..MAP_ROW_OFFSET + LEN {
         for c in MAP_ROW_OFFSET..MAP_ROW_OFFSET + LEN {
-            if map.get(r, c) != 0 {
+            if map.get(r, c) != b'0' {
                 continue;
             }
 
             let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
             for (r, c) in adj {
-                if map.get(r, c) == 1 {
-                    recurse_p2(&mut sum, &map, r, c, 1);
+                if map.get(r, c) == b'1' {
+                    recurse_p2(&mut sum, &map, r, c, b'1');
                 }
             }
         }
