@@ -89,8 +89,41 @@ fn inner_p1<const LEN: usize>(input: &[u8]) -> u32 {
     sum
 }
 
+fn recurse_p2<const LEN: usize>(sum: &mut u32, map: &Map<LEN>, r: isize, c: isize, value: i8) {
+    let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
+    for (r, c) in adj {
+        let adj_value = map.get(r, c);
+
+        if adj_value == value + 1 {
+            if adj_value == 9 {
+                *sum += 1;
+            } else {
+                recurse_p2(sum, map, r, c, adj_value);
+            }
+        }
+    }
+}
+
 fn inner_p2<const LEN: usize>(input: &[u8]) -> u32 {
-    0
+    let map = Map::<LEN>(input);
+
+    let mut sum = 0;
+    for r in 0..LEN as isize {
+        for c in 0..LEN as isize {
+            if map.get(r, c) != 0 {
+                continue;
+            }
+
+            let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
+            for (r, c) in adj {
+                if map.get(r, c) == 1 {
+                    recurse_p2(&mut sum, &map, r, c, 1);
+                }
+            }
+        }
+    }
+
+    sum
 }
 
 pub fn part1(input: &str) -> u32 {
