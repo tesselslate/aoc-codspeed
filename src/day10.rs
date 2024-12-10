@@ -48,6 +48,32 @@ impl Map {
     }
 }
 
+struct Memo([u8; MAP_SZ]);
+
+impl Default for Memo {
+    fn default() -> Self {
+        Memo([0xFF; MAP_SZ])
+    }
+}
+
+impl Memo {
+    #[inline]
+    pub fn get(&self, row: usize, col: usize) -> Option<u32> {
+        let x = self.0[row * MAP_LEN + col];
+
+        if x == 0xFF {
+            None
+        } else {
+            Some(x as u32)
+        }
+    }
+
+    #[inline]
+    pub fn set(&mut self, row: usize, col: usize, value: u32) {
+        self.0[row * MAP_LEN + col] = value as u8;
+    }
+}
+
 fn recurse_p1(bits: &mut Bitmap, sum: &mut u32, map: &Map, r: usize, c: usize, value: i8) {
     bits.mark(r as usize, c as usize);
 
@@ -95,25 +121,36 @@ fn inner_p1<const LEN: usize>(input: &[u8]) -> u32 {
     sum
 }
 
-fn recurse_p2(sum: &mut u32, map: &Map, r: usize, c: usize, value: i8) {
+fn recurse_p2(memo: &mut Memo, map: &Map, r: usize, c: usize, value: i8) -> u32 {
     let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
+
+    let mut acc = 0;
     for (r, c) in adj {
         let adj_value = map.get(r, c);
 
         if adj_value == value + 1 {
             if adj_value == 9 {
-                *sum += 1;
+                acc += 1;
             } else {
-                recurse_p2(sum, map, r, c, adj_value);
+                if let Some(x) = memo.get(r, c) {
+                    acc += x;
+                    continue;
+                }
+
+                let ret = recurse_p2(memo, map, r, c, adj_value);
+                memo.set(r, c, ret);
+                acc += ret;
             }
         }
     }
+    acc
 }
 
 fn inner_p2<const LEN: usize>(input: &[u8]) -> u32 {
     let map = Map::new::<LEN>(input);
 
     let mut sum = 0;
+    let mut memo = Memo::default();
     for r in MAP_ROW_OFFSET..MAP_ROW_OFFSET + LEN {
         for c in MAP_ROW_OFFSET..MAP_ROW_OFFSET + LEN {
             if map.get(r, c) != 0 {
@@ -123,7 +160,7 @@ fn inner_p2<const LEN: usize>(input: &[u8]) -> u32 {
             let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
             for (r, c) in adj {
                 if map.get(r, c) == 1 {
-                    recurse_p2(&mut sum, &map, r, c, 1);
+                    sum += recurse_p2(&mut memo, &map, r, c, 1);
                 }
             }
         }
