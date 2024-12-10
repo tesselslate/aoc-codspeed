@@ -1,11 +1,104 @@
-pub fn part1(input: &str) -> u32 {
-    let input = input.as_bytes();
+const MAP_LEN: usize = 64;
+const MAP_SZ: usize = MAP_LEN * MAP_LEN;
+const MAP_U64: usize = MAP_SZ / 64;
+
+struct Bitmap([u64; MAP_U64]);
+
+impl Default for Bitmap {
+    fn default() -> Self {
+        Self([0; MAP_U64])
+    }
+}
+
+impl Bitmap {
+    #[inline]
+    pub fn has(&mut self, row: usize, col: usize) -> bool {
+        (self.0[row] & (1 << col)) != 0
+    }
+
+    #[inline]
+    pub fn mark(&mut self, row: usize, col: usize) {
+        self.0[row] |= 1 << col;
+    }
+}
+
+struct Map<'a, const LEN: usize>(&'a [u8]);
+
+impl<'a, const LEN: usize> Map<'a, LEN> {
+    #[inline]
+    pub fn get(&self, row: isize, col: isize) -> i8 {
+        if row < 0 || col < 0 || row >= LEN as isize || col >= LEN as isize {
+            -1
+        } else {
+            (self.0[row as usize * (LEN + 1) + col as usize] - b'0') as i8
+        }
+    }
+}
+
+fn recurse_p1<const LEN: usize>(
+    bits: &mut Bitmap,
+    sum: &mut u32,
+    map: &Map<LEN>,
+    r: isize,
+    c: isize,
+    value: i8,
+) {
+    bits.mark(r as usize, c as usize);
+
+    let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
+    for (r, c) in adj {
+        let adj_value = map.get(r, c);
+
+        if adj_value == value + 1 {
+            if bits.has(r as usize, c as usize) {
+                continue;
+            }
+
+            if adj_value == 9 {
+                bits.mark(r as usize, c as usize);
+                *sum += 1;
+            } else {
+                recurse_p1(bits, sum, map, r, c, adj_value);
+            }
+        }
+    }
+}
+
+fn inner_p1<const LEN: usize>(input: &[u8]) -> u32 {
+    let map = Map::<LEN>(input);
+
+    let mut sum = 0;
+    for r in 0..LEN as isize {
+        for c in 0..LEN as isize {
+            if map.get(r, c) != 0 {
+                continue;
+            }
+
+            let mut bits = Bitmap::default();
+            bits.mark(r as usize, c as usize);
+
+            let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
+            for (r, c) in adj {
+                if map.get(r, c) == 1 {
+                    recurse_p1(&mut bits, &mut sum, &map, r, c, 1);
+                }
+            }
+        }
+    }
+
+    sum
+}
+
+fn inner_p2<const LEN: usize>(input: &[u8]) -> u32 {
     0
 }
 
+pub fn part1(input: &str) -> u32 {
+    inner_p1::<54>(input.as_bytes())
+}
+
 pub fn part2(input: &str) -> u32 {
-    let input = input.as_bytes();
-    0
+    inner_p2::<54>(input.as_bytes())
 }
 
 #[cfg(test)]
@@ -27,11 +120,11 @@ mod tests {
 
     #[test]
     fn test_a() {
-        assert_eq!(part1(TEST), 36);
+        assert_eq!(inner_p1::<8>(TEST.as_bytes()), 36);
     }
 
     #[test]
     fn test_b() {
-        assert_eq!(part2(TEST), 81);
+        assert_eq!(inner_p2::<8>(TEST.as_bytes()), 81);
     }
 }
