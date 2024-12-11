@@ -1,3 +1,5 @@
+use std::{hint::assert_unchecked, ops::BitAnd, simd::u8x32};
+
 const MAP_LEN: usize = 64;
 const MAP_SZ: usize = MAP_LEN * MAP_LEN;
 const MAP_ROW_OFFSET: usize = 1;
@@ -41,14 +43,25 @@ impl Map {
                 map.0
                     .get_unchecked_mut(dst_start..dst_start + LEN)
                     .copy_from_slice(input.get_unchecked(src_start..src_start + LEN));
-
-                map.0
-                    .get_unchecked_mut(dst_start..dst_start + LEN)
-                    .iter_mut()
-                    .for_each(|x| *x -= b'0');
             }
         }
 
+        #[target_feature(enable = "avx2")]
+        #[inline]
+        unsafe fn sub_ascii<const LEN: usize>(map: &mut Map) {
+            let mask = u8x32::splat(0xF);
+
+            let mut ptr = MAP_LEN * MAP_ROW_OFFSET;
+            for _ in 0..(LEN * 2) {
+                let data = unsafe { map.0.get_unchecked_mut(ptr..ptr + 32) };
+                assert_unchecked(data.len() == 32);
+
+                u8x32::from_slice(data).bitand(mask).copy_to_slice(data);
+                ptr += 32;
+            }
+        }
+
+        unsafe { sub_ascii::<LEN>(&mut map) };
         map
     }
 
