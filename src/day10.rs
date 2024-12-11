@@ -41,6 +41,11 @@ impl Map {
                 map.0
                     .get_unchecked_mut(dst_start..dst_start + LEN)
                     .copy_from_slice(input.get_unchecked(src_start..src_start + LEN));
+
+                map.0
+                    .get_unchecked_mut(dst_start..dst_start + LEN)
+                    .iter_mut()
+                    .for_each(|x| *x -= b'0');
             }
         }
 
@@ -49,7 +54,7 @@ impl Map {
 
     #[inline]
     pub fn get(&self, row: usize, col: usize) -> i8 {
-        unsafe { (*self.0.get_unchecked(row * MAP_LEN + col) - b'0') as i8 }
+        unsafe { *self.0.get_unchecked(row * MAP_LEN + col) as i8 }
     }
 }
 
@@ -80,7 +85,7 @@ impl Memo {
 }
 
 macro_rules! recurse_p1_impl {
-    ($func_name:ident,$func_next:ident,$next_value:literal) => {
+    ($func_name: ident, $func_next: ident, $next_value: literal) => {
         fn $func_name<const L: bool, const R: bool, const U: bool, const D: bool>(
             visited: &mut VisitMap,
             sum: &mut u32,
@@ -154,7 +159,7 @@ fn inner_p1<const LEN: usize>(input: &[u8]) -> u32 {
 }
 
 macro_rules! recurse_p2_impl {
-    ($func_name:ident,$func_next:ident,$next_value:literal) => {
+    ($func_name: ident, $func_next: ident, $next_value: literal) => {
         fn $func_name<const L: bool, const R: bool, const U: bool, const D: bool>(
             memo: &mut Memo,
             map: &Map,
