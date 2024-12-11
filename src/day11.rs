@@ -1,15 +1,17 @@
 use std::collections::HashMap;
 
+use rustc_hash::FxBuildHasher;
+
 struct Memo {
-    data: HashMap<(u64, usize), u64>,
+    data: HashMap<(u64, usize), u64, FxBuildHasher>,
     misses: usize,
     hits: usize,
 }
 
 impl Memo {
-    pub fn new() -> Self {
+    pub fn new(cap: usize) -> Self {
         Self {
-            data: HashMap::with_capacity(4096),
+            data: HashMap::with_capacity_and_hasher(cap, FxBuildHasher::default()),
             misses: 0,
             hits: 0,
         }
@@ -81,7 +83,9 @@ fn calculate_outer<const STEPS: usize>(input: &str) -> u64 {
     stones[num_stones] = parse_num(&input[pos..end]);
     num_stones += 1;
 
-    let mut memo = Memo::new();
+    let expect_cap = if STEPS == 25 { 3200 } else { 128000 };
+
+    let mut memo = Memo::new(expect_cap);
     let mut sum = 0;
     for &stone in &stones[..num_stones] {
         sum += calculate(&mut memo, stone, STEPS);
