@@ -75,26 +75,52 @@ impl Memo {
     }
 }
 
-fn recurse_p1(visited: &mut VisitMap, sum: &mut u32, map: &Map, r: usize, c: usize, value: i8) {
-    visited.mark(r, c);
+macro_rules! recurse_p1_impl {
+    ($func_name:ident,$func_next:ident,$next_value:literal) => {
+        fn $func_name<const L: bool, const R: bool, const U: bool, const D: bool>(
+            visited: &mut VisitMap,
+            sum: &mut u32,
+            map: &Map,
+            r: usize,
+            c: usize,
+        ) {
+            visited.mark(r, c);
 
-    let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
-    for (r, c) in adj {
-        let adj_value = map.get(r, c);
-
-        if adj_value == value + 1 {
-            if visited.has(r, c) {
-                continue;
+            if L && map.get(r, c - 1) == $next_value && !visited.has(r, c - 1) {
+                $func_next::<true, false, true, true>(visited, sum, map, r, c - 1);
             }
-
-            if adj_value == 9 {
-                visited.mark(r, c);
-                *sum += 1;
-            } else {
-                recurse_p1(visited, sum, map, r, c, adj_value);
+            if R && map.get(r, c + 1) == $next_value && !visited.has(r, c + 1) {
+                $func_next::<false, true, true, true>(visited, sum, map, r, c + 1);
+            }
+            if U && map.get(r - 1, c) == $next_value && !visited.has(r - 1, c) {
+                $func_next::<true, true, true, false>(visited, sum, map, r - 1, c);
+            }
+            if D && map.get(r + 1, c) == $next_value && !visited.has(r + 1, c) {
+                $func_next::<true, true, false, true>(visited, sum, map, r + 1, c);
             }
         }
-    }
+    };
+}
+
+recurse_p1_impl!(recurse_p1_1, recurse_p1_2, 2);
+recurse_p1_impl!(recurse_p1_2, recurse_p1_3, 3);
+recurse_p1_impl!(recurse_p1_3, recurse_p1_4, 4);
+recurse_p1_impl!(recurse_p1_4, recurse_p1_5, 5);
+recurse_p1_impl!(recurse_p1_5, recurse_p1_6, 6);
+recurse_p1_impl!(recurse_p1_6, recurse_p1_7, 7);
+recurse_p1_impl!(recurse_p1_7, recurse_p1_8, 8);
+recurse_p1_impl!(recurse_p1_8, recurse_p1_9, 9);
+
+#[inline(always)]
+fn recurse_p1_9<const L: bool, const R: bool, const U: bool, const D: bool>(
+    visited: &mut VisitMap,
+    sum: &mut u32,
+    _: &Map,
+    r: usize,
+    c: usize,
+) {
+    visited.mark(r, c);
+    *sum += 1;
 }
 
 fn inner_p1<const LEN: usize>(input: &[u8]) -> u32 {
@@ -114,7 +140,7 @@ fn inner_p1<const LEN: usize>(input: &[u8]) -> u32 {
             let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
             for (r, c) in adj {
                 if map.get(r, c) == 1 {
-                    recurse_p1(&mut visited, &mut sum, &map, r, c, 1);
+                    recurse_p1_1::<true, true, true, true>(&mut visited, &mut sum, &map, r, c);
                 }
             }
         }
@@ -123,29 +149,69 @@ fn inner_p1<const LEN: usize>(input: &[u8]) -> u32 {
     sum
 }
 
-fn recurse_p2(memo: &mut Memo, map: &Map, r: usize, c: usize, value: i8) -> u32 {
-    let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
+macro_rules! recurse_p2_impl {
+    ($func_name:ident,$func_next:ident,$next_value:literal) => {
+        fn $func_name<const L: bool, const R: bool, const U: bool, const D: bool>(
+            memo: &mut Memo,
+            map: &Map,
+            r: usize,
+            c: usize,
+        ) -> u32 {
+            let mut acc = 0;
 
-    let mut acc = 0;
-    for (r, c) in adj {
-        let adj_value = map.get(r, c);
-
-        if adj_value == value + 1 {
-            if adj_value == 9 {
-                acc += 1;
-            } else {
-                if let Some(x) = memo.get(r, c) {
-                    acc += x;
-                    continue;
+            if L && map.get(r, c - 1) == $next_value {
+                if let Some(val) = memo.get(r, c - 1) {
+                    acc += val;
+                } else {
+                    acc += $func_next::<true, false, true, true>(memo, map, r, c - 1);
                 }
-
-                let ret = recurse_p2(memo, map, r, c, adj_value);
-                memo.set(r, c, ret);
-                acc += ret;
             }
+            if R && map.get(r, c + 1) == $next_value {
+                if let Some(val) = memo.get(r, c + 1) {
+                    acc += val;
+                } else {
+                    acc += $func_next::<false, true, true, true>(memo, map, r, c + 1);
+                }
+            }
+            if U && map.get(r - 1, c) == $next_value {
+                if let Some(val) = memo.get(r - 1, c) {
+                    acc += val;
+                } else {
+                    acc += $func_next::<true, true, true, false>(memo, map, r - 1, c);
+                }
+            }
+            if D && map.get(r + 1, c) == $next_value {
+                if let Some(val) = memo.get(r + 1, c) {
+                    acc += val;
+                } else {
+                    acc += $func_next::<true, true, false, true>(memo, map, r + 1, c);
+                }
+            }
+
+            memo.set(r, c, acc);
+            acc
         }
-    }
-    acc
+    };
+}
+
+recurse_p2_impl!(recurse_p2_1, recurse_p2_2, 2);
+recurse_p2_impl!(recurse_p2_2, recurse_p2_3, 3);
+recurse_p2_impl!(recurse_p2_3, recurse_p2_4, 4);
+recurse_p2_impl!(recurse_p2_4, recurse_p2_5, 5);
+recurse_p2_impl!(recurse_p2_5, recurse_p2_6, 6);
+recurse_p2_impl!(recurse_p2_6, recurse_p2_7, 7);
+recurse_p2_impl!(recurse_p2_7, recurse_p2_8, 8);
+recurse_p2_impl!(recurse_p2_8, recurse_p2_9, 9);
+
+#[inline(always)]
+fn recurse_p2_9<const L: bool, const R: bool, const U: bool, const D: bool>(
+    memo: &mut Memo,
+    _: &Map,
+    r: usize,
+    c: usize,
+) -> u32 {
+    memo.set(r, c, 1);
+    1
 }
 
 fn inner_p2<const LEN: usize>(input: &[u8]) -> u32 {
@@ -162,7 +228,7 @@ fn inner_p2<const LEN: usize>(input: &[u8]) -> u32 {
             let adj = [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
             for (r, c) in adj {
                 if map.get(r, c) == 1 {
-                    sum += recurse_p2(&mut memo, &map, r, c, 1);
+                    sum += recurse_p2_1::<true, true, true, true>(&mut memo, &map, r, c);
                 }
             }
         }
