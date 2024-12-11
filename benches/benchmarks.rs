@@ -67,4 +67,4 @@ criterion_group!(d8, d8p1, d8p2);
 criterion_group!(d9, d9p1, d9p2);
 criterion_group!(d10, d10p1, d10p2);
 criterion_group!(d11, d11p1, d11p2);
-criterion_main!(d10);
+criterion_main!(d11);
