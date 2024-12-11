@@ -83,7 +83,7 @@ fn calculate_outer<const STEPS: usize>(input: &str) -> u64 {
     stones[num_stones] = parse_num(&input[pos..end]);
     num_stones += 1;
 
-    let expect_cap = if STEPS == 25 { 3200 } else { 128000 };
+    let expect_cap = if STEPS == 25 { 6400 } else { 160000 };
 
     let mut memo = Memo::new(expect_cap);
     let mut sum = 0;
