@@ -1,20 +1,39 @@
 use std::collections::HashMap;
 
-struct Memo(HashMap<(u64, usize), u64>);
+struct Memo {
+    data: HashMap<(u64, usize), u64>,
+    misses: usize,
+    hits: usize,
+}
 
 impl Memo {
     pub fn new() -> Self {
-        Self(HashMap::with_capacity(4096))
+        Self {
+            data: HashMap::with_capacity(4096),
+            misses: 0,
+            hits: 0,
+        }
     }
 
     #[inline]
-    pub fn get(&self, stone: u64, steps: usize) -> Option<&u64> {
-        self.0.get(&(stone, steps))
+    pub fn get(&mut self, stone: u64, steps: usize) -> Option<&u64> {
+        #[cfg(debug_assertions)]
+        {
+            if let Some(x) = self.data.get(&(stone, steps)) {
+                self.hits += 1;
+                return Some(x);
+            } else {
+                self.misses += 1;
+                return None;
+            }
+        }
+
+        self.data.get(&(stone, steps))
     }
 
     #[inline]
     pub fn set(&mut self, stone: u64, steps: usize, substones: u64) {
-        self.0.insert((stone, steps), substones);
+        self.data.insert((stone, steps), substones);
     }
 }
 
@@ -66,6 +85,11 @@ fn calculate_outer<const STEPS: usize>(input: &str) -> u64 {
     let mut sum = 0;
     for &stone in &stones[..num_stones] {
         sum += calculate(&mut memo, stone, STEPS);
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        println!("{}/{} cache accesses", memo.hits, memo.hits + memo.misses);
     }
 
     sum
