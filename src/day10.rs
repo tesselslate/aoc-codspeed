@@ -13,12 +13,12 @@ impl Default for VisitMap {
 impl VisitMap {
     #[inline]
     pub fn has(&mut self, row: usize, col: usize) -> bool {
-        self.0[row * MAP_LEN + col] == self.1
+        unsafe { *self.0.get_unchecked(row * MAP_LEN + col) == self.1 }
     }
 
     #[inline]
     pub fn mark(&mut self, row: usize, col: usize) {
-        self.0[row * MAP_LEN + col] = self.1
+        unsafe { *self.0.get_unchecked_mut(row * MAP_LEN + col) = self.1 }
     }
 
     #[inline]
@@ -37,7 +37,11 @@ impl Map {
             let dst_start = (row + 1) * MAP_LEN + MAP_ROW_OFFSET;
             let src_start = row * (LEN + 1);
 
-            map.0[dst_start..dst_start + LEN].copy_from_slice(&input[src_start..src_start + LEN]);
+            unsafe {
+                map.0
+                    .get_unchecked_mut(dst_start..dst_start + LEN)
+                    .copy_from_slice(input.get_unchecked(src_start..src_start + LEN));
+            }
         }
 
         map
@@ -45,7 +49,7 @@ impl Map {
 
     #[inline]
     pub fn get(&self, row: usize, col: usize) -> i8 {
-        (self.0[row * MAP_LEN + col] - b'0') as i8
+        unsafe { (*self.0.get_unchecked(row * MAP_LEN + col) - b'0') as i8 }
     }
 }
 
@@ -60,7 +64,7 @@ impl Default for Memo {
 impl Memo {
     #[inline]
     pub fn get(&self, row: usize, col: usize) -> Option<u32> {
-        let x = self.0[row * MAP_LEN + col];
+        let x = unsafe { *self.0.get_unchecked(row * MAP_LEN + col) };
 
         if x == 0xFF {
             None
@@ -71,7 +75,7 @@ impl Memo {
 
     #[inline]
     pub fn set(&mut self, row: usize, col: usize, value: u32) {
-        self.0[row * MAP_LEN + col] = value as u8;
+        unsafe { *self.0.get_unchecked_mut(row * MAP_LEN + col) = value as u8 };
     }
 }
 
