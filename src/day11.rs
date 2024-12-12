@@ -2,9 +2,6 @@ use std::collections::HashMap;
 
 use rustc_hash::FxBuildHasher;
 
-const LUT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/day11_lut.bin"));
-const LUT_STONE_COUNT: u64 = 10000000;
-
 struct Memo {
     data: HashMap<(u64, usize), u64, FxBuildHasher>,
 }
@@ -46,26 +43,26 @@ fn fast_ilog10(x: u64) -> u32 {
     guess as u32 + (x > LUT[guess]) as u32
 }
 
-fn calculate_inner(memo: &mut Memo, stone: u64, steps: usize) -> u64 {
+fn calculate(memo: &mut Memo, stone: u64, steps: usize) -> u64 {
     if let Some(result) = memo.get(stone, steps) {
         *result
     } else if steps == 0 {
         1
     } else {
         let result = if stone == 0 {
-            calculate_inner(memo, 1, steps - 1)
+            calculate(memo, 1, steps - 1)
         } else {
             let log10 = fast_ilog10(stone);
 
             if log10 % 2 == 1 {
                 let pow = 10u64.pow(log10 / 2 + 1);
 
-                let lhs = calculate_inner(memo, stone / pow, steps - 1);
-                let rhs = calculate_inner(memo, stone % pow, steps - 1);
+                let lhs = calculate(memo, stone / pow, steps - 1);
+                let rhs = calculate(memo, stone % pow, steps - 1);
 
                 lhs + rhs
             } else {
-                calculate_inner(memo, stone * 2024, steps - 1)
+                calculate(memo, stone * 2024, steps - 1)
             }
         };
 
@@ -74,49 +71,33 @@ fn calculate_inner(memo: &mut Memo, stone: u64, steps: usize) -> u64 {
     }
 }
 
-fn lut_lookup<const P1: bool>(stone: u64) -> Option<u64> {
-    if stone >= LUT_STONE_COUNT {
-        None
-    } else {
-        let mut offset = if P1 { 0 } else { LUT_STONE_COUNT as usize * 8 };
-        offset += stone as usize * 8;
-
-        Some(u64::from_ne_bytes(
-            unsafe { LUT.get_unchecked(offset..offset + 8) }
-                .try_into()
-                .unwrap(),
-        ))
-    }
-}
-
-fn process_stone<const P1: bool>(memo: &mut Option<Memo>, input: &[u8]) -> u64 {
-    let stone = parse_num(input);
-
-    if let Some(count) = lut_lookup::<P1>(stone) {
-        count
-    } else {
-        if memo.is_none() {
-            *memo = Some(Memo::new(if P1 { 6400 } else { 160000 }));
-        }
-
-        calculate_inner(&mut memo.as_mut().unwrap(), stone, if P1 { 25 } else { 75 })
-    }
-}
-
-fn calculate<const P1: bool>(input: &str) -> u64 {
+fn calculate_outer<const STEPS: usize>(input: &str) -> u64 {
     let input = input.as_bytes();
     let end = memchr::memchr(b'\n', input).unwrap_or(input.len());
 
-    let mut memo = None; // Memo::new(if P1 { 6400 } else { 160000 });
-
+    let mut stones = [0u64; 16];
+    let mut num_stones = 0;
     let mut pos = 0;
-    let mut sum = 0;
+
     for delim in memchr::memchr_iter(b' ', input) {
-        sum += process_stone::<P1>(&mut memo, &input[pos..delim]);
+        let bytes = &input[pos..delim];
+
+        stones[num_stones] = parse_num(bytes);
+        num_stones += 1;
+
         pos = delim + 1;
     }
 
-    sum += process_stone::<P1>(&mut memo, &input[pos..end]);
+    stones[num_stones] = parse_num(&input[pos..end]);
+    num_stones += 1;
+
+    let expect_cap = if STEPS == 25 { 6400 } else { 160000 };
+
+    let mut memo = Memo::new(expect_cap);
+    let mut sum = 0;
+    for &stone in &stones[..num_stones] {
+        sum += calculate(&mut memo, stone, STEPS);
+    }
 
     sum
 }
@@ -126,11 +107,11 @@ fn parse_num(b: &[u8]) -> u64 {
 }
 
 pub fn part1(input: &str) -> u64 {
-    calculate::<true>(input)
+    calculate_outer::<25>(input)
 }
 
 pub fn part2(input: &str) -> u64 {
-    calculate::<false>(input)
+    calculate_outer::<75>(input)
 }
 
 #[cfg(test)]
