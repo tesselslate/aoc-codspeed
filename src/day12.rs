@@ -47,7 +47,28 @@ impl Bitmap {
     }
 }
 
-fn dfs_p1<const LEN: isize>(
+macro_rules! dfs_p1_inner {
+    ($grid: ident, $visited: ident, $area: ident, $peri: ident, $row: ident, $col: ident, $id: ident, $dr: literal, $dc: literal, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
+        if $check {
+            let new_id = $grid.get($row + $dr, $col + $dc);
+            if new_id == $id && !$visited.get($row + $dr, $col + $dc) {
+                dfs_p1::<LEN, $L, $R, $U, $D>(
+                    $grid,
+                    $visited,
+                    $area,
+                    $peri,
+                    $row + $dr,
+                    $col + $dc,
+                    $id,
+                );
+            } else if new_id != $id {
+                *$peri += 1;
+            }
+        }
+    };
+}
+
+fn dfs_p1<const LEN: isize, const L: bool, const R: bool, const U: bool, const D: bool>(
     grid: &Grid<LEN>,
     visited: &mut Bitmap,
     area: &mut u32,
@@ -59,15 +80,10 @@ fn dfs_p1<const LEN: isize>(
     visited.set(row, col);
     *area += 1;
 
-    for (dr, dc) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
-        let new_id = grid.get(row + dr, col + dc);
-
-        if new_id == id && !visited.get(row + dr, col + dc) {
-            dfs_p1(grid, visited, area, peri, row + dr, col + dc, id);
-        } else if new_id != id {
-            *peri += 1;
-        }
-    }
+    dfs_p1_inner!(grid, visited, area, peri, row, col, id, 1, 0, true, true, false, true, D);
+    dfs_p1_inner!(grid, visited, area, peri, row, col, id, -1, 0, true, true, true, false, U);
+    dfs_p1_inner!(grid, visited, area, peri, row, col, id, 0, 1, false, true, true, true, R);
+    dfs_p1_inner!(grid, visited, area, peri, row, col, id, 0, -1, true, false, true, true, L);
 }
 
 fn inner_p1<const LEN: isize>(input: &str) -> u32 {
@@ -85,7 +101,15 @@ fn inner_p1<const LEN: isize>(input: &str) -> u32 {
             debug_assert!(id != 0);
 
             let (mut area, mut peri) = (0, 0);
-            dfs_p1(&grid, &mut visited, &mut area, &mut peri, r, c, id);
+            dfs_p1::<LEN, true, true, true, true>(
+                &grid,
+                &mut visited,
+                &mut area,
+                &mut peri,
+                r,
+                c,
+                id,
+            );
             sum += area * peri;
         }
     }
@@ -93,7 +117,53 @@ fn inner_p1<const LEN: isize>(input: &str) -> u32 {
     sum
 }
 
-fn dfs_p2<const LEN: isize>(
+macro_rules! dfs_p2_inner_h {
+    ($grid: ident, $visited: ident, $area: ident, $peri: ident, $row: ident, $col: ident, $id: ident, $dr: literal, $dc: literal, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
+        if $check {
+            let new_id = $grid.get($row + $dr, $col + $dc);
+            if new_id == $id && !$visited.get($row + $dr, $col + $dc) {
+                dfs_p2::<LEN, $L, $R, $U, $D>(
+                    $grid,
+                    $visited,
+                    $area,
+                    $peri,
+                    $row + $dr,
+                    $col + $dc,
+                    $id,
+                );
+            } else if new_id != $id {
+                let a = $grid.get($row + $dr, $col - 1) == $id;
+                let b = $grid.get($row, $col - 1) == $id;
+                *$peri += (a || !b) as u32;
+            }
+        }
+    };
+}
+
+macro_rules! dfs_p2_inner_v {
+    ($grid: ident, $visited: ident, $area: ident, $peri: ident, $row: ident, $col: ident, $id: ident, $dr: literal, $dc: literal, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
+        if $check {
+            let new_id = $grid.get($row + $dr, $col + $dc);
+            if new_id == $id && !$visited.get($row + $dr, $col + $dc) {
+                dfs_p2::<LEN, $L, $R, $U, $D>(
+                    $grid,
+                    $visited,
+                    $area,
+                    $peri,
+                    $row + $dr,
+                    $col + $dc,
+                    $id,
+                );
+            } else if new_id != $id {
+                let a = $grid.get($row - 1, $col + $dc) == $id;
+                let b = $grid.get($row - 1, $col) == $id;
+                *$peri += (a || !b) as u32;
+            }
+        }
+    };
+}
+
+fn dfs_p2<const LEN: isize, const L: bool, const R: bool, const U: bool, const D: bool>(
     grid: &Grid<LEN>,
     visited: &mut Bitmap,
     area: &mut u32,
@@ -105,29 +175,10 @@ fn dfs_p2<const LEN: isize>(
     visited.set(row, col);
     *area += 1;
 
-    for dr in [-1, 1] {
-        let new_id = grid.get(row + dr, col);
-
-        if new_id == id && !visited.get(row + dr, col) {
-            dfs_p2(grid, visited, area, peri, row + dr, col, id);
-        } else if new_id != id {
-            let a = grid.get(row + dr, col - 1) == id;
-            let b = grid.get(row, col - 1) == id;
-            *peri += (a || !b) as u32;
-        }
-    }
-
-    for dc in [-1, 1] {
-        let new_id = grid.get(row, col + dc);
-
-        if new_id == id && !visited.get(row, col + dc) {
-            dfs_p2(grid, visited, area, peri, row, col + dc, id);
-        } else if new_id != id {
-            let a = grid.get(row - 1, col + dc) == id;
-            let b = grid.get(row - 1, col) == id;
-            *peri += (a || !b) as u32;
-        }
-    }
+    dfs_p2_inner_h!(grid, visited, area, peri, row, col, id, 1, 0, true, true, false, true, D);
+    dfs_p2_inner_h!(grid, visited, area, peri, row, col, id, -1, 0, true, true, true, false, U);
+    dfs_p2_inner_v!(grid, visited, area, peri, row, col, id, 0, 1, false, true, true, true, R);
+    dfs_p2_inner_v!(grid, visited, area, peri, row, col, id, 0, -1, true, false, true, true, L);
 }
 
 fn inner_p2<const LEN: isize>(input: &str) -> u32 {
@@ -145,7 +196,15 @@ fn inner_p2<const LEN: isize>(input: &str) -> u32 {
             debug_assert!(id != 0);
 
             let (mut area, mut peri) = (0, 0);
-            dfs_p2(&grid, &mut visited, &mut area, &mut peri, r, c, id);
+            dfs_p2::<LEN, true, true, true, true>(
+                &grid,
+                &mut visited,
+                &mut area,
+                &mut peri,
+                r,
+                c,
+                id,
+            );
             sum += area * peri;
         }
     }
