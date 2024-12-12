@@ -34,6 +34,11 @@ name = "day11"
 path = "src/bin/day11.rs"
 bench = false
 
+[[bin]]
+name = "day12"
+path = "src/bin/day12.rs"
+bench = false
+
 [dependencies]
 aoc-runner = "0.3.0"
 aoc-runner-derive = "0.3.0"
