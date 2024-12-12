@@ -13,7 +13,7 @@ const D8_INPUT: &str = include_str!("../inputs/input8.txt");
 const D9_INPUT: &str = include_str!("../inputs/input9.txt");
 const D10_INPUT: &str = include_str!("../inputs/input10.txt");
 const D11_INPUT: &str = include_str!("../inputs/input11.txt");
-const D12_INPUT: &str = include_str!("../inputs/inptu12.txt");
+const D12_INPUT: &str = include_str!("../inputs/input12.txt");
 
 pub fn d6p1(c: &mut Criterion) {
     c.bench_function("6a", |b| b.iter(|| black_box(day6::part1(D6_INPUT))));

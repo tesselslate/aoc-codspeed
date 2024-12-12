@@ -1,6 +1,102 @@
-pub fn part1(input: &str) -> u32 {}
+const GRID_LEN: isize = 140;
+const GRID_PLEN: isize = GRID_LEN + 2;
+const GRID_SIZE: isize = GRID_PLEN * GRID_PLEN;
+const GRID_BSZ: usize = (GRID_SIZE as usize).div_ceil(64);
 
-pub fn part2(input: &str) -> u32 {}
+struct Grid<'a, const LEN: isize>(&'a [u8]);
+
+impl<'a, const LEN: isize> Grid<'a, LEN> {
+    #[inline]
+    pub fn get(&self, row: isize, col: isize) -> u8 {
+        if row < 0 || col < 0 || row >= LEN || col >= LEN {
+            0
+        } else {
+            self.0[(row * (LEN + 1) + col) as usize]
+        }
+    }
+}
+
+struct Bitmap([u64; GRID_BSZ]);
+
+impl Default for Bitmap {
+    fn default() -> Self {
+        Bitmap([0; GRID_BSZ])
+    }
+}
+
+impl Bitmap {
+    #[inline]
+    pub fn get(&self, row: isize, col: isize) -> bool {
+        let pos = ((row + 1) * GRID_PLEN + (col + 1)) as usize;
+        let idx = pos / 64;
+        let bit = pos % 64;
+
+        (self.0[idx] & (1 << bit)) != 0
+    }
+
+    #[inline]
+    pub fn set(&mut self, row: isize, col: isize) {
+        let pos = ((row + 1) * GRID_PLEN + (col + 1)) as usize;
+        let idx = pos / 64;
+        let bit = pos % 64;
+
+        self.0[idx] |= 1 << bit;
+    }
+}
+
+fn dfs_p1<const LEN: isize>(
+    grid: &Grid<LEN>,
+    visited: &mut Bitmap,
+    area: &mut u32,
+    peri: &mut u32,
+    row: isize,
+    col: isize,
+    id: u8,
+) {
+    visited.set(row, col);
+    *area += 1;
+
+    for (dr, dc) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+        let new_id = grid.get(row + dr, col + dc);
+
+        if new_id == id && !visited.get(row + dr, col + dc) {
+            dfs_p1(grid, visited, area, peri, row + dr, col + dc, id);
+        } else if new_id != id {
+            *peri += 1;
+        }
+    }
+}
+
+fn inner_p1<const LEN: isize>(input: &str) -> u32 {
+    let grid = Grid::<LEN>(input.as_bytes());
+
+    let mut visited = Bitmap::default();
+    let mut sum = 0;
+    for r in 0..LEN {
+        for c in 0..LEN {
+            if visited.get(r, c) {
+                continue;
+            }
+
+            let id = grid.get(r, c);
+            debug_assert!(id != 0);
+
+            let (mut area, mut peri) = (0, 0);
+            dfs_p1(&grid, &mut visited, &mut area, &mut peri, r, c, id);
+            sum += area * peri;
+        }
+    }
+
+    sum
+}
+
+pub fn part1(input: &str) -> u32 {
+    inner_p1::<GRID_LEN>(input)
+}
+
+pub fn part2(input: &str) -> u32 {
+    0
+}
 
 #[cfg(test)]
 mod tests {
@@ -21,7 +117,7 @@ mod tests {
 
     #[test]
     fn test_a() {
-        assert_eq!(part1(TEST), 1930);
+        assert_eq!(inner_p1::<10>(TEST), 1930);
     }
 
     #[test]
