@@ -34,7 +34,7 @@ impl Bitmap {
         let idx = pos / 64;
         let bit = pos % 64;
 
-        (self.0[idx] & (1 << bit)) != 0
+        (unsafe { *self.0.get_unchecked(idx) } & (1 << bit)) != 0
     }
 
     #[inline]
@@ -43,7 +43,7 @@ impl Bitmap {
         let idx = pos / 64;
         let bit = pos % 64;
 
-        self.0[idx] |= 1 << bit;
+        *unsafe { self.0.get_unchecked_mut(idx) } |= 1 << bit;
     }
 }
 
