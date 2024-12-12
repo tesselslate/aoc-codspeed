@@ -47,6 +47,34 @@ impl Bitmap {
     }
 }
 
+struct Boolmap([bool; GRID_SIZE as usize]);
+
+impl Default for Boolmap {
+    fn default() -> Self {
+        Boolmap([false; GRID_SIZE as usize])
+    }
+}
+
+impl Boolmap {
+    #[inline]
+    pub fn get(&self, row: isize, col: isize) -> bool {
+        unsafe {
+            *self
+                .0
+                .get_unchecked(((row + 1) * GRID_PLEN + (col + 1)) as usize)
+        }
+    }
+
+    #[inline]
+    pub fn set(&mut self, row: isize, col: isize) {
+        unsafe {
+            *self
+                .0
+                .get_unchecked_mut(((row + 1) * GRID_PLEN + (col + 1)) as usize) = true;
+        }
+    }
+}
+
 macro_rules! dfs_p1_inner {
     ($grid: ident, $visited: ident, $area: ident, $peri: ident, $row: ident, $col: ident, $id: ident, $dr: literal, $dc: literal, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
         if $check {
@@ -165,7 +193,7 @@ macro_rules! dfs_p2_inner_v {
 
 fn dfs_p2<const LEN: isize, const L: bool, const R: bool, const U: bool, const D: bool>(
     grid: &Grid<LEN>,
-    visited: &mut Bitmap,
+    visited: &mut Boolmap,
     area: &mut u32,
     peri: &mut u32,
     row: isize,
@@ -184,7 +212,7 @@ fn dfs_p2<const LEN: isize, const L: bool, const R: bool, const U: bool, const D
 fn inner_p2<const LEN: isize>(input: &str) -> u32 {
     let grid = Grid::<LEN>(input.as_bytes());
 
-    let mut visited = Bitmap::default();
+    let mut visited = Boolmap::default();
     let mut sum = 0;
     for r in 0..LEN {
         for c in 0..LEN {
