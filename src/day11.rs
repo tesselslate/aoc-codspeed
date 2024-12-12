@@ -82,7 +82,9 @@ fn lut_lookup<const P1: bool>(stone: u64) -> Option<u64> {
         offset += stone as usize * 8;
 
         Some(u64::from_ne_bytes(
-            LUT[offset..offset + 8].try_into().unwrap(),
+            unsafe { LUT.get_unchecked(offset..offset + 8) }
+                .try_into()
+                .unwrap(),
         ))
     }
 }
