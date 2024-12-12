@@ -90,12 +90,72 @@ fn inner_p1<const LEN: isize>(input: &str) -> u32 {
     sum
 }
 
+fn dfs_p2<const LEN: isize>(
+    grid: &Grid<LEN>,
+    visited: &mut Bitmap,
+    area: &mut u32,
+    peri: &mut u32,
+    row: isize,
+    col: isize,
+    id: u8,
+) {
+    visited.set(row, col);
+    *area += 1;
+
+    for dr in [-1, 1] {
+        let new_id = grid.get(row + dr, col);
+
+        if new_id == id && !visited.get(row + dr, col) {
+            dfs_p2(grid, visited, area, peri, row + dr, col, id);
+        } else if new_id != id {
+            let a = grid.get(row + dr, col - 1) == id;
+            let b = grid.get(row, col - 1) == id;
+            *peri += (a || !b) as u32;
+        }
+    }
+
+    for dc in [-1, 1] {
+        let new_id = grid.get(row, col + dc);
+
+        if new_id == id && !visited.get(row, col + dc) {
+            dfs_p2(grid, visited, area, peri, row, col + dc, id);
+        } else if new_id != id {
+            let a = grid.get(row - 1, col + dc) == id;
+            let b = grid.get(row - 1, col) == id;
+            *peri += (a || !b) as u32;
+        }
+    }
+}
+
+fn inner_p2<const LEN: isize>(input: &str) -> u32 {
+    let grid = Grid::<LEN>(input.as_bytes());
+
+    let mut visited = Bitmap::default();
+    let mut sum = 0;
+    for r in 0..LEN {
+        for c in 0..LEN {
+            if visited.get(r, c) {
+                continue;
+            }
+
+            let id = grid.get(r, c);
+            debug_assert!(id != 0);
+
+            let (mut area, mut peri) = (0, 0);
+            dfs_p2(&grid, &mut visited, &mut area, &mut peri, r, c, id);
+            sum += area * peri;
+        }
+    }
+
+    sum
+}
+
 pub fn part1(input: &str) -> u32 {
     inner_p1::<GRID_LEN>(input)
 }
 
 pub fn part2(input: &str) -> u32 {
-    0
+    inner_p2::<GRID_LEN>(input)
 }
 
 #[cfg(test)]
@@ -122,6 +182,6 @@ mod tests {
 
     #[test]
     fn test_b() {
-        assert_eq!(part2(TEST), 1206);
+        assert_eq!(inner_p2::<10>(TEST), 1206);
     }
 }
