@@ -87,23 +87,34 @@ fn lut_lookup<const P1: bool>(stone: u64) -> Option<u64> {
     }
 }
 
+fn process_stone<const P1: bool>(memo: &mut Option<Memo>, input: &[u8]) -> u64 {
+    let stone = parse_num(input);
+
+    if let Some(count) = lut_lookup::<P1>(stone) {
+        count
+    } else {
+        if memo.is_none() {
+            *memo = Some(Memo::new(if P1 { 6400 } else { 160000 }));
+        }
+
+        calculate_inner(&mut memo.as_mut().unwrap(), stone, if P1 { 25 } else { 75 })
+    }
+}
+
 fn calculate<const P1: bool>(input: &str) -> u64 {
     let input = input.as_bytes();
     let end = memchr::memchr(b'\n', input).unwrap_or(input.len());
 
-    let mut memo = Memo::new(if P1 { 6400 } else { 160000 });
+    let mut memo = None; // Memo::new(if P1 { 6400 } else { 160000 });
 
     let mut pos = 0;
     let mut sum = 0;
     for delim in memchr::memchr_iter(b' ', input) {
-        let stone = parse_num(&input[pos..delim]);
-
-        sum += lut_lookup::<P1>(stone)
-            .unwrap_or_else(|| calculate_inner(&mut memo, stone, if P1 { 25 } else { 75 }));
+        sum += process_stone::<P1>(&mut memo, &input[pos..delim]);
         pos = delim + 1;
     }
 
-    sum += lut_lookup::<P1>(parse_num(&input[pos..end])).unwrap();
+    sum += process_stone::<P1>(&mut memo, &input[pos..end]);
 
     sum
 }
