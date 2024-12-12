@@ -8,10 +8,13 @@ struct Grid<'a, const LEN: isize>(&'a [u8]);
 impl<'a, const LEN: isize> Grid<'a, LEN> {
     #[inline]
     pub fn get(&self, row: isize, col: isize) -> u8 {
-        if row < 0 || col < 0 || row >= LEN || col >= LEN {
+        let pos = row * (LEN + 1) + col;
+
+        // this bounds check *requires* a trailing newline
+        if pos < 0 || pos >= (LEN + 1) * LEN {
             0
         } else {
-            self.0[(row * (LEN + 1) + col) as usize]
+            self.0[pos as usize]
         }
     }
 }
