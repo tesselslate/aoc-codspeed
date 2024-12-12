@@ -20,6 +20,10 @@ harness = false
 name = "day8"
 harness = false
 
+[[bench]]
+name = "day11"
+harness = false
+
 [[bin]]
 name = "day10"
 path = "src/bin/day10.rs"
