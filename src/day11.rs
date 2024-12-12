@@ -15,17 +15,23 @@ fn lut_lookup<const P1: bool>(stone: u64) -> Option<u64> {
 }
 
 fn calculate<const P1: bool>(input: &str) -> u64 {
-    let input = &input[..input.find('\n').unwrap_or(input.len())];
+    let input = input.as_bytes();
+    let end = memchr::memchr(b'\n', input).unwrap_or(input.len());
 
+    let mut pos = 0;
     let mut sum = 0;
-    input.split(' ').for_each(|x| {
-        let stone = x.parse::<u64>().unwrap();
-        if let Some(count) = lut_lookup::<P1>(stone) {
-            sum += count;
-        }
-    });
+    for delim in memchr::memchr_iter(b' ', input) {
+        sum += lut_lookup::<P1>(parse_num(&input[pos..delim])).unwrap();
+        pos = delim + 1;
+    }
+
+    sum += lut_lookup::<P1>(parse_num(&input[pos..end])).unwrap();
 
     sum
+}
+
+fn parse_num(b: &[u8]) -> u64 {
+    b.iter().fold(0, |acc, x| acc * 10 + (x - b'0') as u64)
 }
 
 pub fn part1(input: &str) -> u64 {
