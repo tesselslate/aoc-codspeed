@@ -108,7 +108,7 @@ macro_rules! dfs_p1_inner {
 
 fn dfs_p1<const L: bool, const R: bool, const U: bool, const D: bool>(
     grid: &PadGrid,
-    visited: &mut Bitmap,
+    visited: &mut Boolmap,
     area: &mut u32,
     peri: &mut u32,
     row: isize,
@@ -128,7 +128,7 @@ fn inner_p1<const LEN: usize>(input: &str) -> u32 {
     let grid = PadGrid::new::<LEN>(input.as_bytes());
     let i_len = LEN as isize;
 
-    let mut visited = Bitmap::default();
+    let mut visited = Boolmap::default();
     let mut sum = 0;
     for r in 1..=i_len {
         for c in 1..=i_len {
