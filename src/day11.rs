@@ -39,6 +39,25 @@ impl Memo {
     }
 }
 
+// https://da-data.blogspot.com/2023/02/integer-log10-in-rust-and-c.html
+// adapted for u64
+#[inline]
+fn fast_ilog10(x: u64) -> u32 {
+    #[rustfmt::skip]
+    const LUT: [u64; 15] = [
+        9,                  99,                 999,
+        9_999,              99_999,             999_999,
+        9_999_999,          99_999_999,         999_999_999,
+        9_999_999_999,      99_999_999_999,     999_999_999_999,
+        9_999_999_999_999,  99_999_999_999_999, 999_999_999_999_999,
+    ];
+
+    const MASK: u64 = 0b0001001001000100100100010010010001001001000100100100010010010000;
+
+    let guess = (MASK << x.leading_zeros()).count_ones() as usize;
+    guess as u32 + (x > LUT[guess]) as u32
+}
+
 fn calculate(memo: &mut Memo, stone: u64, steps: usize) -> u64 {
     if let Some(result) = memo.get(stone, steps) {
         *result
@@ -47,15 +66,19 @@ fn calculate(memo: &mut Memo, stone: u64, steps: usize) -> u64 {
     } else {
         let result = if stone == 0 {
             calculate(memo, 1, steps - 1)
-        } else if stone.ilog10() % 2 == 1 {
-            let pow = 10u64.pow(stone.ilog10() / 2 + 1);
-
-            let lhs = calculate(memo, stone / pow, steps - 1);
-            let rhs = calculate(memo, stone % pow, steps - 1);
-
-            lhs + rhs
         } else {
-            calculate(memo, stone * 2024, steps - 1)
+            let log10 = fast_ilog10(stone);
+
+            if log10 % 2 == 1 {
+                let pow = 10u64.pow(log10 / 2 + 1);
+
+                let lhs = calculate(memo, stone / pow, steps - 1);
+                let rhs = calculate(memo, stone % pow, steps - 1);
+
+                lhs + rhs
+            } else {
+                calculate(memo, stone * 2024, steps - 1)
+            }
         };
 
         memo.set(stone, steps, result);
