@@ -4,32 +4,17 @@ use rustc_hash::FxBuildHasher;
 
 struct Memo {
     data: HashMap<(u64, usize), u64, FxBuildHasher>,
-    misses: usize,
-    hits: usize,
 }
 
 impl Memo {
     pub fn new(cap: usize) -> Self {
         Self {
             data: HashMap::with_capacity_and_hasher(cap, FxBuildHasher::default()),
-            misses: 0,
-            hits: 0,
         }
     }
 
     #[inline]
     pub fn get(&mut self, stone: u64, steps: usize) -> Option<&u64> {
-        #[cfg(debug_assertions)]
-        {
-            if let Some(x) = self.data.get(&(stone, steps)) {
-                self.hits += 1;
-                return Some(x);
-            } else {
-                self.misses += 1;
-                return None;
-            }
-        }
-
         self.data.get(&(stone, steps))
     }
 
@@ -112,11 +97,6 @@ fn calculate_outer<const STEPS: usize>(input: &str) -> u64 {
     let mut sum = 0;
     for &stone in &stones[..num_stones] {
         sum += calculate(&mut memo, stone, STEPS);
-    }
-
-    #[cfg(debug_assertions)]
-    {
-        println!("{}/{} cache accesses", memo.hits, memo.hits + memo.misses);
     }
 
     sum
