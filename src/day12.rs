@@ -4,33 +4,18 @@ const GRID_PLEN: isize = GRID_LEN + 2;
 const GRID_SIZE: isize = GRID_PLEN * GRID_PLEN;
 const GRID_BSZ: usize = (GRID_SIZE as usize).div_ceil(64);
 
-struct Grid<'a, const LEN: isize>(&'a [u8]);
-
-impl<'a, const LEN: isize> Grid<'a, LEN> {
-    #[inline]
-    pub fn get(&self, row: isize, col: isize) -> u8 {
-        let pos = row * (LEN + 1) + col;
-
-        // this bounds check *requires* a trailing newline
-        if pos < 0 || pos >= (LEN + 1) * LEN {
-            0
-        } else {
-            unsafe { *self.0.get_unchecked(pos as usize) }
-        }
-    }
-}
-
 struct PadGrid([u8; GRID_SIZE as usize]);
 
 impl PadGrid {
-    pub fn new<const LEN: usize>(input: &[u8]) -> Self {
+    pub fn new<const SRC_LEN: usize>(input: &[u8]) -> Self {
         let mut grid = PadGrid([0; GRID_SIZE as usize]);
 
-        for r in 0..LEN {
+        for r in 0..SRC_LEN {
             let dst_start = (r + 1) * GRID_PLEN as usize + 1;
-            let src_start = r * (LEN + 1);
+            let src_start = r * (SRC_LEN + 1);
 
-            grid.0[dst_start..dst_start + LEN].copy_from_slice(&input[src_start..src_start + LEN]);
+            grid.0[dst_start..dst_start + SRC_LEN]
+                .copy_from_slice(&input[src_start..src_start + SRC_LEN]);
         }
 
         grid
@@ -105,7 +90,7 @@ macro_rules! dfs_p1_inner {
         if $check {
             let new_id = $grid.get($row + $dr, $col + $dc);
             if new_id == $id && !$visited.get($row + $dr, $col + $dc) {
-                dfs_p1::<LEN, $L, $R, $U, $D>(
+                dfs_p1::<$L, $R, $U, $D>(
                     $grid,
                     $visited,
                     $area,
@@ -121,8 +106,8 @@ macro_rules! dfs_p1_inner {
     };
 }
 
-fn dfs_p1<const LEN: isize, const L: bool, const R: bool, const U: bool, const D: bool>(
-    grid: &Grid<LEN>,
+fn dfs_p1<const L: bool, const R: bool, const U: bool, const D: bool>(
+    grid: &PadGrid,
     visited: &mut Bitmap,
     area: &mut u32,
     peri: &mut u32,
@@ -139,13 +124,14 @@ fn dfs_p1<const LEN: isize, const L: bool, const R: bool, const U: bool, const D
     dfs_p1_inner!(grid, visited, area, peri, row, col, id, 0, -1, true, false, true, true, L);
 }
 
-fn inner_p1<const LEN: isize>(input: &str) -> u32 {
-    let grid = Grid::<LEN>(input.as_bytes());
+fn inner_p1<const LEN: usize>(input: &str) -> u32 {
+    let grid = PadGrid::new::<LEN>(input.as_bytes());
+    let i_len = LEN as isize;
 
     let mut visited = Bitmap::default();
     let mut sum = 0;
-    for r in 0..LEN {
-        for c in 0..LEN {
+    for r in 1..=i_len {
+        for c in 1..=i_len {
             if visited.get(r, c) {
                 continue;
             }
@@ -154,15 +140,7 @@ fn inner_p1<const LEN: isize>(input: &str) -> u32 {
             debug_assert!(id != 0);
 
             let (mut area, mut peri) = (0, 0);
-            dfs_p1::<LEN, true, true, true, true>(
-                &grid,
-                &mut visited,
-                &mut area,
-                &mut peri,
-                r,
-                c,
-                id,
-            );
+            dfs_p1::<true, true, true, true>(&grid, &mut visited, &mut area, &mut peri, r, c, id);
             sum += area * peri;
         }
     }
@@ -259,7 +237,7 @@ fn inner_p2<const LEN: usize>(input: &str) -> u32 {
 }
 
 pub fn part1(input: &str) -> u32 {
-    inner_p1::<GRID_LEN>(input)
+    inner_p1::<GRID_LEN_U>(input)
 }
 
 pub fn part2(input: &str) -> u32 {
