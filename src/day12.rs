@@ -14,7 +14,7 @@ impl<'a, const LEN: isize> Grid<'a, LEN> {
         if pos < 0 || pos >= (LEN + 1) * LEN {
             0
         } else {
-            self.0[pos as usize]
+            unsafe { *self.0.get_unchecked(pos as usize) }
         }
     }
 }
