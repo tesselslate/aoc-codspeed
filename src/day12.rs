@@ -5,15 +5,14 @@ const GRID_SIZE: usize = GRID_PLEN * GRID_PLEN;
 struct PadGrid<const LEN: usize>([u8; GRID_SIZE]);
 
 impl<const LEN: usize> PadGrid<LEN> {
-    pub fn new<const SRC_LEN: usize>(input: &[u8]) -> Self {
+    pub fn new(input: &[u8]) -> Self {
         let mut grid = PadGrid([0; GRID_SIZE]);
 
-        for r in 0..SRC_LEN {
+        for r in 0..LEN {
             let dst_start = (r + 1) * (LEN + 2) + 1;
-            let src_start = r * (SRC_LEN + 1);
+            let src_start = r * (LEN + 1);
 
-            grid.0[dst_start..dst_start + SRC_LEN]
-                .copy_from_slice(&input[src_start..src_start + SRC_LEN]);
+            grid.0[dst_start..dst_start + LEN].copy_from_slice(&input[src_start..src_start + LEN]);
         }
 
         grid
@@ -108,7 +107,7 @@ fn dfs_p1<const LEN: usize, const L: bool, const R: bool, const U: bool, const D
 }
 
 fn inner_p1<const LEN: usize>(input: &str) -> u32 {
-    let grid = PadGrid::new::<LEN>(input.as_bytes());
+    let grid = PadGrid::new(input.as_bytes());
 
     let mut visited = Boolmap::default();
     let mut sum = 0;
@@ -138,30 +137,15 @@ fn inner_p1<const LEN: usize>(input: &str) -> u32 {
     sum
 }
 
-macro_rules! dfs_p2_inner_h {
-    ($grid: ident, $visited: ident, $area: ident, $peri: ident, $pt: ident, $id: ident, $move: ident, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
+macro_rules! dfs_p2_inner {
+    ($grid: ident, $visited: ident, $area: ident, $peri: ident, $pt: ident, $id: ident, $move: ident, $pmove: ident, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
         if $check {
             let new_id = $grid.get($pt.$move());
             if new_id == $id && !$visited.get($pt.$move()) {
                 dfs_p2::<LEN, $L, $R, $U, $D>($grid, $visited, $area, $peri, $pt.$move(), $id);
             } else if new_id != $id {
-                let a = $grid.get($pt.$move().left()) == $id;
-                let b = $grid.get($pt.left()) == $id;
-                *$peri += (a || !b) as u32;
-            }
-        }
-    };
-}
-
-macro_rules! dfs_p2_inner_v {
-    ($grid: ident, $visited: ident, $area: ident, $peri: ident, $pt: ident, $id: ident, $move: ident, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
-        if $check {
-            let new_id = $grid.get($pt.$move());
-            if new_id == $id && !$visited.get($pt.$move()) {
-                dfs_p2::<LEN, $L, $R, $U, $D>($grid, $visited, $area, $peri, $pt.$move(), $id);
-            } else if new_id != $id {
-                let a = $grid.get($pt.$move().up()) == $id;
-                let b = $grid.get($pt.up()) == $id;
+                let a = $grid.get($pt.$move().$pmove()) == $id;
+                let b = $grid.get($pt.$pmove()) == $id;
                 *$peri += (a || !b) as u32;
             }
         }
@@ -179,14 +163,14 @@ fn dfs_p2<const LEN: usize, const L: bool, const R: bool, const U: bool, const D
     visited.set(pt);
     *area += 1;
 
-    dfs_p2_inner_h!(grid, visited, area, peri, pt, id, down, true, true, false, true, D);
-    dfs_p2_inner_h!(grid, visited, area, peri, pt, id, up, true, true, true, false, U);
-    dfs_p2_inner_v!(grid, visited, area, peri, pt, id, right, false, true, true, true, R);
-    dfs_p2_inner_v!(grid, visited, area, peri, pt, id, left, true, false, true, true, L);
+    dfs_p2_inner!(grid, visited, area, peri, pt, id, down, left, true, true, false, true, D);
+    dfs_p2_inner!(grid, visited, area, peri, pt, id, up, left, true, true, true, false, U);
+    dfs_p2_inner!(grid, visited, area, peri, pt, id, right, up, false, true, true, true, R);
+    dfs_p2_inner!(grid, visited, area, peri, pt, id, left, up, true, false, true, true, L);
 }
 
 fn inner_p2<const LEN: usize>(input: &str) -> u32 {
-    let grid = PadGrid::new::<LEN>(input.as_bytes());
+    let grid = PadGrid::new(input.as_bytes());
 
     let mut visited = Boolmap::default();
     let mut sum = 0;
