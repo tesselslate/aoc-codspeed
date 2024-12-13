@@ -1,17 +1,15 @@
-const GRID_LEN: isize = 140;
-const GRID_LEN_U: usize = GRID_LEN as usize;
-const GRID_PLEN: isize = GRID_LEN + 2;
-const GRID_SIZE: isize = GRID_PLEN * GRID_PLEN;
-const GRID_BSZ: usize = (GRID_SIZE as usize).div_ceil(64);
+const GRID_LEN: usize = 140;
+const GRID_PLEN: usize = GRID_LEN + 2;
+const GRID_SIZE: usize = GRID_PLEN * GRID_PLEN;
 
-struct PadGrid([u8; GRID_SIZE as usize]);
+struct PadGrid<const LEN: usize>([u8; GRID_SIZE]);
 
-impl PadGrid {
+impl<const LEN: usize> PadGrid<LEN> {
     pub fn new<const SRC_LEN: usize>(input: &[u8]) -> Self {
-        let mut grid = PadGrid([0; GRID_SIZE as usize]);
+        let mut grid = PadGrid([0; GRID_SIZE]);
 
         for r in 0..SRC_LEN {
-            let dst_start = (r + 1) * GRID_PLEN as usize + 1;
+            let dst_start = (r + 1) * (LEN + 2) + 1;
             let src_start = r * (SRC_LEN + 1);
 
             grid.0[dst_start..dst_start + SRC_LEN]
@@ -22,83 +20,69 @@ impl PadGrid {
     }
 
     #[inline]
-    pub fn get(&self, row: isize, col: isize) -> u8 {
-        let row = row as usize;
-        let col = col as usize;
-        unsafe { *self.0.get_unchecked(row * GRID_PLEN as usize + col) }
+    pub fn get(&self, pt: Point<LEN>) -> u8 {
+        unsafe { *self.0.get_unchecked(pt.0 as usize) }
     }
 }
 
-struct Bitmap([u64; GRID_BSZ]);
+struct Boolmap<const LEN: usize>([bool; GRID_SIZE]);
 
-impl Default for Bitmap {
+impl<const LEN: usize> Default for Boolmap<LEN> {
     fn default() -> Self {
-        Bitmap([0; GRID_BSZ])
+        Boolmap([false; GRID_SIZE])
     }
 }
 
-impl Bitmap {
+impl<const LEN: usize> Boolmap<LEN> {
     #[inline]
-    pub fn get(&self, row: isize, col: isize) -> bool {
-        let pos = ((row + 1) * GRID_PLEN + (col + 1)) as usize;
-        let idx = pos / 64;
-        let bit = pos % 64;
-
-        (unsafe { *self.0.get_unchecked(idx) } & (1 << bit)) != 0
+    pub fn get(&self, pt: Point<LEN>) -> bool {
+        unsafe { *self.0.get_unchecked(pt.0 as usize) }
     }
 
     #[inline]
-    pub fn set(&mut self, row: isize, col: isize) {
-        let pos = ((row + 1) * GRID_PLEN + (col + 1)) as usize;
-        let idx = pos / 64;
-        let bit = pos % 64;
-
-        *unsafe { self.0.get_unchecked_mut(idx) } |= 1 << bit;
-    }
-}
-
-struct Boolmap([bool; GRID_SIZE as usize]);
-
-impl Default for Boolmap {
-    fn default() -> Self {
-        Boolmap([false; GRID_SIZE as usize])
-    }
-}
-
-impl Boolmap {
-    #[inline]
-    pub fn get(&self, row: isize, col: isize) -> bool {
+    pub fn set(&mut self, pt: Point<LEN>) {
         unsafe {
-            *self
-                .0
-                .get_unchecked(((row + 1) * GRID_PLEN + (col + 1)) as usize)
+            *self.0.get_unchecked_mut(pt.0 as usize) = true;
         }
     }
+}
+
+#[derive(Copy, Clone)]
+struct Point<const LEN: usize>(u32);
+
+impl<const LEN: usize> Point<LEN> {
+    #[inline]
+    pub fn new(row: usize, col: usize) -> Self {
+        Point((row * (LEN + 2) + col) as u32)
+    }
 
     #[inline]
-    pub fn set(&mut self, row: isize, col: isize) {
-        unsafe {
-            *self
-                .0
-                .get_unchecked_mut(((row + 1) * GRID_PLEN + (col + 1)) as usize) = true;
-        }
+    pub fn left(self) -> Self {
+        Point(self.0 - 1)
+    }
+
+    #[inline]
+    pub fn right(self) -> Self {
+        Point(self.0 + 1)
+    }
+
+    #[inline]
+    pub fn up(self) -> Self {
+        Point(self.0 - (LEN + 2) as u32)
+    }
+
+    #[inline]
+    pub fn down(self) -> Self {
+        Point(self.0 + (LEN + 2) as u32)
     }
 }
 
 macro_rules! dfs_p1_inner {
-    ($grid: ident, $visited: ident, $area: ident, $peri: ident, $row: ident, $col: ident, $id: ident, $dr: literal, $dc: literal, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
+    ($grid: ident, $visited: ident, $area: ident, $peri: ident, $pt: ident, $id: ident, $move: ident, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
         if $check {
-            let new_id = $grid.get($row + $dr, $col + $dc);
-            if new_id == $id && !$visited.get($row + $dr, $col + $dc) {
-                dfs_p1::<$L, $R, $U, $D>(
-                    $grid,
-                    $visited,
-                    $area,
-                    $peri,
-                    $row + $dr,
-                    $col + $dc,
-                    $id,
-                );
+            let new_id = $grid.get($pt.$move());
+            if new_id == $id && !$visited.get($pt.$move()) {
+                dfs_p1::<LEN, $L, $R, $U, $D>($grid, $visited, $area, $peri, $pt.$move(), $id);
             } else if new_id != $id {
                 *$peri += 1;
             }
@@ -106,41 +90,47 @@ macro_rules! dfs_p1_inner {
     };
 }
 
-fn dfs_p1<const L: bool, const R: bool, const U: bool, const D: bool>(
-    grid: &PadGrid,
-    visited: &mut Boolmap,
+fn dfs_p1<const LEN: usize, const L: bool, const R: bool, const U: bool, const D: bool>(
+    grid: &PadGrid<LEN>,
+    visited: &mut Boolmap<LEN>,
     area: &mut u32,
     peri: &mut u32,
-    row: isize,
-    col: isize,
+    pt: Point<LEN>,
     id: u8,
 ) {
-    visited.set(row, col);
+    visited.set(pt);
     *area += 1;
 
-    dfs_p1_inner!(grid, visited, area, peri, row, col, id, 1, 0, true, true, false, true, D);
-    dfs_p1_inner!(grid, visited, area, peri, row, col, id, -1, 0, true, true, true, false, U);
-    dfs_p1_inner!(grid, visited, area, peri, row, col, id, 0, 1, false, true, true, true, R);
-    dfs_p1_inner!(grid, visited, area, peri, row, col, id, 0, -1, true, false, true, true, L);
+    dfs_p1_inner!(grid, visited, area, peri, pt, id, down, true, true, false, true, D);
+    dfs_p1_inner!(grid, visited, area, peri, pt, id, up, true, true, true, false, U);
+    dfs_p1_inner!(grid, visited, area, peri, pt, id, right, false, true, true, true, R);
+    dfs_p1_inner!(grid, visited, area, peri, pt, id, left, true, false, true, true, L);
 }
 
 fn inner_p1<const LEN: usize>(input: &str) -> u32 {
     let grid = PadGrid::new::<LEN>(input.as_bytes());
-    let i_len = LEN as isize;
 
     let mut visited = Boolmap::default();
     let mut sum = 0;
-    for r in 1..=i_len {
-        for c in 1..=i_len {
-            if visited.get(r, c) {
+    for r in 1..=LEN {
+        for c in 1..=LEN {
+            let pt = Point::new(r, c);
+            if visited.get(pt) {
                 continue;
             }
 
-            let id = grid.get(r, c);
+            let id = grid.get(pt);
             debug_assert!(id != 0);
 
             let (mut area, mut peri) = (0, 0);
-            dfs_p1::<true, true, true, true>(&grid, &mut visited, &mut area, &mut peri, r, c, id);
+            dfs_p1::<LEN, true, true, true, true>(
+                &grid,
+                &mut visited,
+                &mut area,
+                &mut peri,
+                pt,
+                id,
+            );
             sum += area * peri;
         }
     }
@@ -149,22 +139,14 @@ fn inner_p1<const LEN: usize>(input: &str) -> u32 {
 }
 
 macro_rules! dfs_p2_inner_h {
-    ($grid: ident, $visited: ident, $area: ident, $peri: ident, $row: ident, $col: ident, $id: ident, $dr: literal, $dc: literal, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
+    ($grid: ident, $visited: ident, $area: ident, $peri: ident, $pt: ident, $id: ident, $move: ident, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
         if $check {
-            let new_id = $grid.get($row + $dr, $col + $dc);
-            if new_id == $id && !$visited.get($row + $dr, $col + $dc) {
-                dfs_p2::<$L, $R, $U, $D>(
-                    $grid,
-                    $visited,
-                    $area,
-                    $peri,
-                    $row + $dr,
-                    $col + $dc,
-                    $id,
-                );
+            let new_id = $grid.get($pt.$move());
+            if new_id == $id && !$visited.get($pt.$move()) {
+                dfs_p2::<LEN, $L, $R, $U, $D>($grid, $visited, $area, $peri, $pt.$move(), $id);
             } else if new_id != $id {
-                let a = $grid.get($row + $dr, $col - 1) == $id;
-                let b = $grid.get($row, $col - 1) == $id;
+                let a = $grid.get($pt.$move().left()) == $id;
+                let b = $grid.get($pt.left()) == $id;
                 *$peri += (a || !b) as u32;
             }
         }
@@ -172,63 +154,61 @@ macro_rules! dfs_p2_inner_h {
 }
 
 macro_rules! dfs_p2_inner_v {
-    ($grid: ident, $visited: ident, $area: ident, $peri: ident, $row: ident, $col: ident, $id: ident, $dr: literal, $dc: literal, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
+    ($grid: ident, $visited: ident, $area: ident, $peri: ident, $pt: ident, $id: ident, $move: ident, $L: literal, $R: literal, $U: literal, $D: literal, $check: ident) => {
         if $check {
-            let new_id = $grid.get($row + $dr, $col + $dc);
-            if new_id == $id && !$visited.get($row + $dr, $col + $dc) {
-                dfs_p2::<$L, $R, $U, $D>(
-                    $grid,
-                    $visited,
-                    $area,
-                    $peri,
-                    $row + $dr,
-                    $col + $dc,
-                    $id,
-                );
+            let new_id = $grid.get($pt.$move());
+            if new_id == $id && !$visited.get($pt.$move()) {
+                dfs_p2::<LEN, $L, $R, $U, $D>($grid, $visited, $area, $peri, $pt.$move(), $id);
             } else if new_id != $id {
-                let a = $grid.get($row - 1, $col + $dc) == $id;
-                let b = $grid.get($row - 1, $col) == $id;
+                let a = $grid.get($pt.$move().up()) == $id;
+                let b = $grid.get($pt.up()) == $id;
                 *$peri += (a || !b) as u32;
             }
         }
     };
 }
 
-fn dfs_p2<const L: bool, const R: bool, const U: bool, const D: bool>(
-    grid: &PadGrid,
-    visited: &mut Boolmap,
+fn dfs_p2<const LEN: usize, const L: bool, const R: bool, const U: bool, const D: bool>(
+    grid: &PadGrid<LEN>,
+    visited: &mut Boolmap<LEN>,
     area: &mut u32,
     peri: &mut u32,
-    row: isize,
-    col: isize,
+    pt: Point<LEN>,
     id: u8,
 ) {
-    visited.set(row, col);
+    visited.set(pt);
     *area += 1;
 
-    dfs_p2_inner_h!(grid, visited, area, peri, row, col, id, 1, 0, true, true, false, true, D);
-    dfs_p2_inner_h!(grid, visited, area, peri, row, col, id, -1, 0, true, true, true, false, U);
-    dfs_p2_inner_v!(grid, visited, area, peri, row, col, id, 0, 1, false, true, true, true, R);
-    dfs_p2_inner_v!(grid, visited, area, peri, row, col, id, 0, -1, true, false, true, true, L);
+    dfs_p2_inner_h!(grid, visited, area, peri, pt, id, down, true, true, false, true, D);
+    dfs_p2_inner_h!(grid, visited, area, peri, pt, id, up, true, true, true, false, U);
+    dfs_p2_inner_v!(grid, visited, area, peri, pt, id, right, false, true, true, true, R);
+    dfs_p2_inner_v!(grid, visited, area, peri, pt, id, left, true, false, true, true, L);
 }
 
 fn inner_p2<const LEN: usize>(input: &str) -> u32 {
     let grid = PadGrid::new::<LEN>(input.as_bytes());
-    let i_len = LEN as isize;
 
     let mut visited = Boolmap::default();
     let mut sum = 0;
-    for r in 1..=i_len {
-        for c in 1..=i_len {
-            if visited.get(r, c) {
+    for r in 1..=LEN {
+        for c in 1..=LEN {
+            let pt = Point::new(r, c);
+            if visited.get(pt) {
                 continue;
             }
 
-            let id = grid.get(r, c);
+            let id = grid.get(pt);
             debug_assert!(id != 0);
 
             let (mut area, mut peri) = (0, 0);
-            dfs_p2::<true, true, true, true>(&grid, &mut visited, &mut area, &mut peri, r, c, id);
+            dfs_p2::<LEN, true, true, true, true>(
+                &grid,
+                &mut visited,
+                &mut area,
+                &mut peri,
+                pt,
+                id,
+            );
             sum += area * peri;
         }
     }
@@ -237,11 +217,11 @@ fn inner_p2<const LEN: usize>(input: &str) -> u32 {
 }
 
 pub fn part1(input: &str) -> u32 {
-    inner_p1::<GRID_LEN_U>(input)
+    inner_p1::<GRID_LEN>(input)
 }
 
 pub fn part2(input: &str) -> u32 {
-    inner_p2::<GRID_LEN_U>(input)
+    inner_p2::<GRID_LEN>(input)
 }
 
 #[cfg(test)]
