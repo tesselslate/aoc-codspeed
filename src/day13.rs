@@ -10,8 +10,11 @@ impl Default for Scenario {
 fn solve(scenario: &Scenario) -> Option<i64> {
     let [ax, ay, bx, by, px, py] = scenario.0;
 
-    let a = (px * by - py * bx) / (ax * by - ay * bx);
-    let b = (py * ax - px * ay) / (ax * by - ay * bx);
+    let div = ax * by - ay * bx;
+    unsafe { std::hint::assert_unchecked(div != 0) };
+
+    let a = (px * by - py * bx) / div;
+    let b = (py * ax - px * ay) / div;
 
     if a * ax + b * bx == px && a * ay + b * by == py {
         Some(3 * a + b)
