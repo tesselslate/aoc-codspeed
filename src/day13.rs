@@ -20,13 +20,11 @@ fn solve(scenario: &Scenario) -> Option<i64> {
     }
 }
 
-#[inline]
-unsafe fn read_i64_2(ptr: *const u8, acc: &mut i64) -> *const u8 {
+#[inline(always)]
+unsafe fn read_i64_2(ptr: *const u8, acc: &mut i64) {
     let a = (*ptr - b'0') as i64;
     let b = (*ptr.add(1) - b'0') as i64;
     *acc = a * 10 + b;
-
-    ptr.add(2)
 }
 
 #[inline]
@@ -53,30 +51,25 @@ unsafe fn read_i64_3p<const DELIM: u8>(ptr: *const u8, acc: &mut i64) -> *const 
 }
 
 unsafe fn inner<const N: usize, const D: i64>(input: &[u8]) -> i64 {
-    const SKIP_BUTTON: usize = "Button A: +".len() + 1;
-    const SKIP_PRIZE: usize = "Prize: X=".len();
+    const SKIP_BUTTON_AX: usize = "Button A: X+".len();
+    const SKIP_BUTTON_AY: usize = "Button A: X+XX, Y+".len();
+    const SKIP_BUTTON_BX: usize = "Button A: X+XX, Y+YY\nButton B: X+".len();
+    const SKIP_BUTTON_BY: usize = "Button A: X+XX, Y+YY\nButton B: X+XX, Y+".len();
+    const SKIP_PRIZE_X: usize = "Button A: X+XX, Y+YY\nButton B: X+XX, Y+YY\nPrize: X=".len();
 
     let mut sum = 0;
+    let mut scenario = Scenario::default();
 
     let mut ptr = input.as_ptr();
     for _ in 0..N {
-        let mut scenario = Scenario::default();
+        read_i64_2(ptr.add(SKIP_BUTTON_AX), &mut scenario.0[0]);
+        read_i64_2(ptr.add(SKIP_BUTTON_AY), &mut scenario.0[1]);
 
-        ptr = ptr.add(SKIP_BUTTON);
-        ptr = read_i64_2(ptr, &mut scenario.0[0]);
-        ptr = ptr.add(4);
-        ptr = read_i64_2(ptr, &mut scenario.0[1]);
+        read_i64_2(ptr.add(SKIP_BUTTON_BX), &mut scenario.0[2]);
+        read_i64_2(ptr.add(SKIP_BUTTON_BY), &mut scenario.0[3]);
 
-        ptr = ptr.add(SKIP_BUTTON + 1);
-        ptr = read_i64_2(ptr, &mut scenario.0[2]);
-        ptr = ptr.add(4);
-        ptr = read_i64_2(ptr, &mut scenario.0[3]);
-
-        ptr = ptr.add(SKIP_PRIZE + 1);
-        ptr = read_i64_3p::<b','>(ptr, &mut scenario.0[4]);
-        ptr = ptr.add(4);
-        ptr = read_i64_3p::<b'\n'>(ptr, &mut scenario.0[5]);
-        ptr = ptr.add(2);
+        ptr = read_i64_3p::<b','>(ptr.add(SKIP_PRIZE_X), &mut scenario.0[4]);
+        ptr = read_i64_3p::<b'\n'>(ptr.add(4), &mut scenario.0[5]).add(2);
 
         scenario.0[4] += D;
         scenario.0[5] += D;
