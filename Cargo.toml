@@ -12,8 +12,23 @@ codegen-units = 1
 opt-level = 3
 debug = true
 
+[dependencies]
+aoc-runner = "0.3.0"
+aoc-runner-derive = "0.3.0"
+memchr = "2.7.4"
+rustc-hash = "2.1.0"
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+# benches
+
 [[bench]]
-name = "benchmarks"
+name = "day6"
+harness = false
+
+[[bench]]
+name = "day7"
 harness = false
 
 [[bench]]
@@ -21,8 +36,22 @@ name = "day8"
 harness = false
 
 [[bench]]
+name = "day9"
+harness = false
+
+[[bench]]
+name = "day10"
+harness = false
+
+[[bench]]
 name = "day11"
 harness = false
+
+[[bench]]
+name = "day12"
+harness = false
+
+# binaries
 
 [[bin]]
 name = "day10"
@@ -43,12 +72,3 @@ bench = false
 name = "day11_lut"
 path = "src/bin/day11_lut.rs"
 bench = false
-
-[dependencies]
-aoc-runner = "0.3.0"
-aoc-runner-derive = "0.3.0"
-memchr = "2.7.4"
-rustc-hash = "2.1.0"
-
-[dev-dependencies]
-criterion = "0.5.1"
