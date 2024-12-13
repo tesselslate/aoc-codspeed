@@ -10,23 +10,11 @@ impl Default for Scenario {
 fn solve(scenario: &Scenario) -> Option<i64> {
     let [ax, ay, bx, by, px, py] = scenario.0;
 
-    let coeff = -(ax as f64 / ay as f64);
-    let lhs_coeff = bx as f64 + coeff * by as f64;
-    let rhs = px as f64 + coeff * py as f64;
+    let a = (px * by - py * bx) / (ax * by - ay * bx);
+    let b = (py * ax - px * ay) / (ax * by - ay * bx);
 
-    let b = (rhs / lhs_coeff).round() as i64;
-
-    let px = px - b * bx;
-    let py = py - b * by;
-    if px < 0 || py < 0 {
-        return None;
-    }
-
-    let (axi, axj) = (px % ax, px / ax);
-    let (ayi, ayj) = (py % ay, py / ay);
-
-    if axi == 0 && ayi == 0 && axj == ayj {
-        Some(3 * (px / ax) + b)
+    if a * ax + b * bx == px && a * ay + b * by == py {
+        Some(3 * a + b)
     } else {
         None
     }
