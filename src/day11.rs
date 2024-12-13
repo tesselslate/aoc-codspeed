@@ -1,27 +1,15 @@
-use std::collections::HashMap;
+const LUT_RAW: &[u8] = include_bytes!("../lut/day11.bin");
 
-use rustc_hash::FxBuildHasher;
+fn lut_lookup(stone: u64, steps: usize) -> u64 {
+    debug_assert!(stone < 1000);
 
-struct Memo {
-    data: HashMap<(u64, usize), u64, FxBuildHasher>,
-}
-
-impl Memo {
-    pub fn new(cap: usize) -> Self {
-        Self {
-            data: HashMap::with_capacity_and_hasher(cap, FxBuildHasher::default()),
-        }
-    }
-
-    #[inline]
-    pub fn get(&mut self, stone: u64, steps: usize) -> Option<&u64> {
-        self.data.get(&(stone, steps))
-    }
-
-    #[inline]
-    pub fn set(&mut self, stone: u64, steps: usize, substones: u64) {
-        self.data.insert((stone, steps), substones);
-    }
+    let offset = steps * 8000 + stone as usize * 8;
+    u64::from_ne_bytes(unsafe {
+        LUT_RAW
+            .get_unchecked(offset..offset + 8)
+            .try_into()
+            .unwrap_unchecked()
+    })
 }
 
 // https://da-data.blogspot.com/2023/02/integer-log10-in-rust-and-c.html
@@ -43,30 +31,29 @@ fn fast_ilog10(x: u64) -> u32 {
     guess as u32 + (x > LUT[guess]) as u32
 }
 
-fn calculate(memo: &mut Memo, stone: u64, steps: usize) -> u64 {
-    if let Some(result) = memo.get(stone, steps) {
-        *result
+fn calculate(stone: u64, steps: usize) -> u64 {
+    if stone < 1000 {
+        lut_lookup(stone, steps)
     } else if steps == 0 {
         1
     } else {
         let result = if stone == 0 {
-            calculate(memo, 1, steps - 1)
+            calculate(1, steps - 1)
         } else {
             let log10 = fast_ilog10(stone);
 
             if log10 % 2 == 1 {
                 let pow = 10u64.pow(log10 / 2 + 1);
 
-                let lhs = calculate(memo, stone / pow, steps - 1);
-                let rhs = calculate(memo, stone % pow, steps - 1);
+                let lhs = calculate(stone / pow, steps - 1);
+                let rhs = calculate(stone % pow, steps - 1);
 
                 lhs + rhs
             } else {
-                calculate(memo, stone * 2024, steps - 1)
+                calculate(stone * 2024, steps - 1)
             }
         };
 
-        memo.set(stone, steps, result);
         result
     }
 }
@@ -91,12 +78,9 @@ fn calculate_outer<const STEPS: usize>(input: &str) -> u64 {
     stones[num_stones] = parse_num(&input[pos..end]);
     num_stones += 1;
 
-    let expect_cap = if STEPS == 25 { 6400 } else { 160000 };
-
-    let mut memo = Memo::new(expect_cap);
     let mut sum = 0;
     for &stone in &stones[..num_stones] {
-        sum += calculate(&mut memo, stone, STEPS);
+        sum += calculate(stone, STEPS);
     }
 
     sum
