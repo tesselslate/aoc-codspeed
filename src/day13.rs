@@ -9,7 +9,7 @@ unsafe fn p1_inner(input: *const u8) -> u64 {
         "movzx {b2}, byte ptr [{inp}+13]",
         "and {ax}, 0xF",
         "and {b2}, 0xF",
-        "add {ax}, {ax}",
+        "shl {ax}, 1",
         "lea {ax}, [{ax} + 4*{ax}]",
         "add {ax}, {b2}",
     // load ay
@@ -17,7 +17,7 @@ unsafe fn p1_inner(input: *const u8) -> u64 {
         "movzx {b2}, byte ptr [{inp}+19]",
         "and {ay}, 0xF",
         "and {b2}, 0xF",
-        "add {ay}, {ay}",
+        "shl {ay}, 1",
         "lea {ay}, [{ay} + 4*{ay}]",
         "add {ay}, {b2}",
     // load bx
@@ -25,7 +25,7 @@ unsafe fn p1_inner(input: *const u8) -> u64 {
         "movzx {b2}, byte ptr [{inp}+34]",
         "and {bx}, 0xF",
         "and {b2}, 0xF",
-        "add {bx}, {bx}",
+        "shl {bx}, 1",
         "lea {bx}, [{bx} + 4*{bx}]",
         "add {bx}, {b2}",
     // load by
@@ -33,7 +33,7 @@ unsafe fn p1_inner(input: *const u8) -> u64 {
         "movzx {b2}, byte ptr [{inp}+40]",
         "and {by}, 0xF",
         "and {b2}, 0xF",
-        "add {by}, {by}",
+        "shl {by}, 1",
         "lea {by}, [{by} + 4*{by}]",
         "add {by}, {b2}",
     // load tx
@@ -199,7 +199,7 @@ unsafe fn p2_inner(input: *const u8) -> u64 {
         "movzx {b2}, byte ptr [{inp}+13]",
         "and {ax}, 0xF",
         "and {b2}, 0xF",
-        "add {ax}, {ax}",
+        "shl {ax}, 1",
         "lea {ax}, [{ax} + 4*{ax}]",
         "add {ax}, {b2}",
     // load ay
@@ -207,7 +207,7 @@ unsafe fn p2_inner(input: *const u8) -> u64 {
         "movzx {b2}, byte ptr [{inp}+19]",
         "and {ay}, 0xF",
         "and {b2}, 0xF",
-        "add {ay}, {ay}",
+        "shl {ay}, 1",
         "lea {ay}, [{ay} + 4*{ay}]",
         "add {ay}, {b2}",
     // load bx
@@ -215,7 +215,7 @@ unsafe fn p2_inner(input: *const u8) -> u64 {
         "movzx {b2}, byte ptr [{inp}+34]",
         "and {bx}, 0xF",
         "and {b2}, 0xF",
-        "add {bx}, {bx}",
+        "shl {bx}, 1",
         "lea {bx}, [{bx} + 4*{bx}]",
         "add {bx}, {b2}",
     // load by
@@ -223,7 +223,7 @@ unsafe fn p2_inner(input: *const u8) -> u64 {
         "movzx {b2}, byte ptr [{inp}+40]",
         "and {by}, 0xF",
         "and {b2}, 0xF",
-        "add {by}, {by}",
+        "shl {by}, 1",
         "lea {by}, [{by} + 4*{by}]",
         "add {by}, {b2}",
     // load tx
