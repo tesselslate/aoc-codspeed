@@ -103,15 +103,24 @@ fn parse(input: &[u8], robots: &mut RobotsUninit) {
 }
 
 fn inner_p1(input: &[u8]) -> u64 {
-    let mut robots = RobotsUninit::default();
-    parse(input, &mut robots);
-
-    let robots: Robots = unsafe { std::mem::transmute(robots) };
-
+    let mut ptr = unsafe { input.as_ptr().add(2) };
     let mut quads = [0u64; 4];
-    for i in 0..NUM_ROBOTS {
-        let mut pos = robots.pos[i];
-        let vel = robots.vel[i];
+    for _ in 0..NUM_ROBOTS {
+        let mut pos = unsafe {
+            (
+                parse_pcoord::<b','>(&mut ptr),
+                parse_pcoord::<b' '>(&mut ptr),
+            )
+        };
+        ptr = unsafe { ptr.add(2) };
+
+        let vel = unsafe {
+            (
+                parse_vcoord::<b','>(&mut ptr),
+                parse_vcoord::<b'\n'>(&mut ptr),
+            )
+        };
+        ptr = unsafe { ptr.add(2) };
 
         pos.0 = (pos.0 + vel.0 * STEPS_P1).rem_euclid(WIDTH);
         pos.1 = (pos.1 + vel.1 * STEPS_P1).rem_euclid(HEIGHT);
