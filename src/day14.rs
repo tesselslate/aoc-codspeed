@@ -75,33 +75,7 @@ unsafe fn parse_vcoord<const DELIM: u8>(input: &mut *const u8) -> i32 {
     }
 }
 
-// p=PX,PY v=VX,VY
-// ...
-//
-// PX and PY are 1-3 digits
-// VX and VY are 1-2(?) digit pos/neg numbers
-fn parse(input: &[u8], robots: &mut RobotsUninit) {
-    let mut ptr = unsafe { input.as_ptr().add(2) };
-
-    for idx in 0..NUM_ROBOTS {
-        robots.pos[idx]
-            .0
-            .write(unsafe { parse_pcoord::<b','>(&mut ptr) });
-        robots.pos[idx]
-            .1
-            .write(unsafe { parse_pcoord::<b' '>(&mut ptr) });
-        ptr = unsafe { ptr.add(2) };
-
-        robots.vel[idx]
-            .0
-            .write(unsafe { parse_vcoord::<b','>(&mut ptr) });
-        robots.vel[idx]
-            .1
-            .write(unsafe { parse_vcoord::<b'\n'>(&mut ptr) });
-        ptr = unsafe { ptr.add(2) };
-    }
-}
-
+#[inline(always)]
 fn inner_p1(input: &[u8]) -> u64 {
     let mut ptr = unsafe { input.as_ptr().add(2) };
     let mut quads = [0u64; 4];
@@ -147,8 +121,82 @@ pub fn part1(input: &str) -> u64 {
     inner_p1(input.as_bytes())
 }
 
+fn parse(input: &[u8], robots: &mut RobotsUninit) {
+    let mut ptr = unsafe { input.as_ptr().add(2) };
+
+    for idx in 0..NUM_ROBOTS {
+        robots.pos[idx]
+            .0
+            .write(unsafe { parse_pcoord::<b','>(&mut ptr) });
+        robots.pos[idx]
+            .1
+            .write(unsafe { parse_pcoord::<b' '>(&mut ptr) });
+        ptr = unsafe { ptr.add(2) };
+
+        robots.vel[idx]
+            .0
+            .write(unsafe { parse_vcoord::<b','>(&mut ptr) });
+        robots.vel[idx]
+            .1
+            .write(unsafe { parse_vcoord::<b'\n'>(&mut ptr) });
+        ptr = unsafe { ptr.add(2) };
+    }
+}
+
+fn lut_lookup(vpat: i32, hpat: i32) -> u32 {
+    const LUT_RAW: &[u8] = include_bytes!("../lut/day14.bin");
+
+    let offset = (vpat * 103 + hpat) as usize * 4;
+    u32::from_ne_bytes(unsafe {
+        LUT_RAW
+            .get_unchecked(offset..offset + 4)
+            .try_into()
+            .unwrap_unchecked()
+    })
+}
+
+#[inline(always)]
+fn inner_p2(input: &[u8]) -> u32 {
+    let mut robots = RobotsUninit::default();
+    parse(input, &mut robots);
+    let mut robots: Robots = unsafe { std::mem::transmute(robots) };
+
+    let (mut vpat, mut hpat) = (None, None);
+    for step in 0..103 {
+        let mut rows = [0; HEIGHT as usize];
+        let mut cols = [0; WIDTH as usize];
+
+        for i in 0..NUM_ROBOTS {
+            let pos = &mut robots.pos[i];
+            let vel = &robots.vel[i];
+
+            *pos = (
+                (pos.0 + vel.0).rem_euclid(WIDTH),
+                (pos.1 + vel.1).rem_euclid(HEIGHT),
+            );
+            cols[pos.0 as usize] += 1;
+            rows[pos.1 as usize] += 1;
+        }
+
+        unsafe {
+            if *rows.iter().max().unwrap_unchecked() > 25 {
+                hpat = Some(step);
+            }
+            if *cols.iter().max().unwrap_unchecked() > 25 {
+                vpat = Some(step);
+            }
+        }
+
+        if hpat.is_some() && vpat.is_some() {
+            break;
+        }
+    }
+
+    unsafe { lut_lookup(vpat.unwrap_unchecked(), hpat.unwrap_unchecked()) }
+}
+
 pub fn part2(input: &str) -> u32 {
-    0
+    inner_p2(input.as_bytes())
 }
 
 #[cfg(test)]
