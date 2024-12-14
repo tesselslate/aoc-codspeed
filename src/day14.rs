@@ -143,44 +143,83 @@ fn lut_lookup(vpat: i32, hpat: i32) -> u32 {
     })
 }
 
+unsafe fn search<const ROWS: bool, const COLS: bool>(
+    start: usize,
+    rows: &mut [u32; HEIGHT as usize],
+    cols: &mut [u32; WIDTH as usize],
+    vpat: &mut i32,
+    hpat: &mut i32,
+    robots: &mut Robots,
+) {
+    for step in start..103 {
+        if ROWS {
+            rows.iter_mut().for_each(|x| *x = 0);
+        }
+        if COLS {
+            cols.iter_mut().for_each(|x| *x = 0);
+        }
+
+        for i in 0..NUM_ROBOTS {
+            let pos = &mut robots.pos[i];
+            let vel = &robots.vel[i];
+
+            if ROWS {
+                pos.1 = (pos.1 + vel.1).rem_euclid(HEIGHT);
+                *rows.get_unchecked_mut(pos.1 as usize) += 1;
+            }
+            if COLS {
+                pos.0 = (pos.0 + vel.0).rem_euclid(WIDTH);
+                *cols.get_unchecked_mut(pos.0 as usize) += 1;
+            }
+        }
+
+        if ROWS {
+            if *rows.iter().max().unwrap_unchecked() > 25 {
+                *hpat = step as i32;
+
+                if COLS {
+                    if *cols.iter().max().unwrap_unchecked() > 25 {
+                        *vpat = step as i32;
+                    } else {
+                        search::<false, true>(step + 1, rows, cols, vpat, hpat, robots);
+                    }
+                }
+
+                return;
+            }
+        }
+
+        if COLS {
+            if *cols.iter().max().unwrap_unchecked() > 25 {
+                *vpat = step as i32;
+
+                if ROWS {
+                    search::<true, false>(step + 1, rows, cols, vpat, hpat, robots);
+                }
+
+                return;
+            }
+        }
+    }
+}
+
 #[inline(always)]
 unsafe fn inner_p2(input: &[u8]) -> u32 {
     let mut robots = RobotsUninit::default();
     parse(input, &mut robots);
     let mut robots: Robots = std::mem::transmute(robots);
 
-    let (mut vpat, mut hpat) = (None, None);
-    for step in 0..103 {
-        let mut rows = [0; HEIGHT as usize];
-        let mut cols = [0; WIDTH as usize];
+    let (mut vpat, mut hpat) = (0, 0);
+    search::<true, true>(
+        0,
+        &mut [0; HEIGHT as usize],
+        &mut [0; WIDTH as usize],
+        &mut vpat,
+        &mut hpat,
+        &mut robots,
+    );
 
-        for i in 0..NUM_ROBOTS {
-            let pos = &mut robots.pos[i];
-            let vel = &robots.vel[i];
-
-            *pos = (
-                (pos.0 + vel.0).rem_euclid(WIDTH),
-                (pos.1 + vel.1).rem_euclid(HEIGHT),
-            );
-            unsafe { *cols.get_unchecked_mut(pos.0 as usize) += 1 };
-            unsafe { *rows.get_unchecked_mut(pos.1 as usize) += 1 };
-        }
-
-        unsafe {
-            if *rows.iter().max().unwrap_unchecked() > 25 {
-                hpat = Some(step);
-            }
-            if *cols.iter().max().unwrap_unchecked() > 25 {
-                vpat = Some(step);
-            }
-        }
-
-        if hpat.is_some() && vpat.is_some() {
-            break;
-        }
-    }
-
-    unsafe { lut_lookup(vpat.unwrap_unchecked(), hpat.unwrap_unchecked()) }
+    lut_lookup(vpat, hpat)
 }
 
 pub fn part2(input: &str) -> u32 {
