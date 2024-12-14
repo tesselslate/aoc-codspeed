@@ -136,7 +136,6 @@ unsafe fn p1_inner(input: *const u8) -> u64 {
         "imul {b4}, {bx}",
         "sub {b1}, {b4}",
 
-        "xor rax, rax",
         "mov rax, {tx}",
         "imul rax, {by}",
         "mov rdx, {ty}",
@@ -329,7 +328,6 @@ unsafe fn p2_inner(input: *const u8) -> u64 {
         "imul {b4}, {bx}",
         "sub {b1}, {b4}",
 
-        "xor rax, rax",
         "mov rax, {tx}",
         "imul rax, {by}",
         "mov rdx, {ty}",
