@@ -76,25 +76,21 @@ unsafe fn parse_vcoord<const DELIM: u8>(input: &mut *const u8) -> i32 {
 }
 
 #[inline(always)]
-fn inner_p1(input: &[u8]) -> u64 {
-    let mut ptr = unsafe { input.as_ptr().add(2) };
+unsafe fn inner_p1(input: &[u8]) -> u64 {
+    let mut ptr = input.as_ptr().add(2);
     let mut quads = [0u64; 4];
     for _ in 0..NUM_ROBOTS {
-        let mut pos = unsafe {
-            (
-                parse_pcoord::<b','>(&mut ptr),
-                parse_pcoord::<b' '>(&mut ptr),
-            )
-        };
-        ptr = unsafe { ptr.add(2) };
+        let mut pos = (
+            parse_pcoord::<b','>(&mut ptr),
+            parse_pcoord::<b' '>(&mut ptr),
+        );
+        ptr = ptr.add(2);
 
-        let vel = unsafe {
-            (
-                parse_vcoord::<b','>(&mut ptr),
-                parse_vcoord::<b'\n'>(&mut ptr),
-            )
-        };
-        ptr = unsafe { ptr.add(2) };
+        let vel = (
+            parse_vcoord::<b','>(&mut ptr),
+            parse_vcoord::<b'\n'>(&mut ptr),
+        );
+        ptr = ptr.add(2);
 
         pos.0 = (pos.0 + vel.0 * STEPS_P1).rem_euclid(WIDTH);
         pos.1 = (pos.1 + vel.1 * STEPS_P1).rem_euclid(HEIGHT);
@@ -118,28 +114,20 @@ fn inner_p1(input: &[u8]) -> u64 {
 }
 
 pub fn part1(input: &str) -> u64 {
-    inner_p1(input.as_bytes())
+    unsafe { inner_p1(input.as_bytes()) }
 }
 
-fn parse(input: &[u8], robots: &mut RobotsUninit) {
-    let mut ptr = unsafe { input.as_ptr().add(2) };
+unsafe fn parse(input: &[u8], robots: &mut RobotsUninit) {
+    let mut ptr = input.as_ptr().add(2);
 
     for idx in 0..NUM_ROBOTS {
-        robots.pos[idx]
-            .0
-            .write(unsafe { parse_pcoord::<b','>(&mut ptr) });
-        robots.pos[idx]
-            .1
-            .write(unsafe { parse_pcoord::<b' '>(&mut ptr) });
-        ptr = unsafe { ptr.add(2) };
+        robots.pos[idx].0.write(parse_pcoord::<b','>(&mut ptr));
+        robots.pos[idx].1.write(parse_pcoord::<b' '>(&mut ptr));
+        ptr = ptr.add(2);
 
-        robots.vel[idx]
-            .0
-            .write(unsafe { parse_vcoord::<b','>(&mut ptr) });
-        robots.vel[idx]
-            .1
-            .write(unsafe { parse_vcoord::<b'\n'>(&mut ptr) });
-        ptr = unsafe { ptr.add(2) };
+        robots.vel[idx].0.write(parse_vcoord::<b','>(&mut ptr));
+        robots.vel[idx].1.write(parse_vcoord::<b'\n'>(&mut ptr));
+        ptr = ptr.add(2);
     }
 }
 
@@ -156,10 +144,10 @@ fn lut_lookup(vpat: i32, hpat: i32) -> u32 {
 }
 
 #[inline(always)]
-fn inner_p2(input: &[u8]) -> u32 {
+unsafe fn inner_p2(input: &[u8]) -> u32 {
     let mut robots = RobotsUninit::default();
     parse(input, &mut robots);
-    let mut robots: Robots = unsafe { std::mem::transmute(robots) };
+    let mut robots: Robots = std::mem::transmute(robots);
 
     let (mut vpat, mut hpat) = (None, None);
     for step in 0..103 {
@@ -174,8 +162,8 @@ fn inner_p2(input: &[u8]) -> u32 {
                 (pos.0 + vel.0).rem_euclid(WIDTH),
                 (pos.1 + vel.1).rem_euclid(HEIGHT),
             );
-            cols[pos.0 as usize] += 1;
-            rows[pos.1 as usize] += 1;
+            unsafe { *cols.get_unchecked_mut(pos.0 as usize) += 1 };
+            unsafe { *rows.get_unchecked_mut(pos.1 as usize) += 1 };
         }
 
         unsafe {
@@ -196,7 +184,7 @@ fn inner_p2(input: &[u8]) -> u32 {
 }
 
 pub fn part2(input: &str) -> u32 {
-    inner_p2(input.as_bytes())
+    unsafe { inner_p2(input.as_bytes()) }
 }
 
 #[cfg(test)]
