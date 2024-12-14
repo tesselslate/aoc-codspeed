@@ -227,7 +227,7 @@ unsafe fn p2_inner(input: *const u8) -> u64 {
         "lea {by}, [{by} + 4*{by}]",
         "add {by}, {b1}",
     // load tx
-        "xor {tx}, {tx}",
+        "mov {tx}, rax",
         "add {inp}, 51",
         "movzx {b1}, byte ptr [{inp}]",
         "movzx {b2}, byte ptr [{inp}+1]",
@@ -274,8 +274,7 @@ unsafe fn p2_inner(input: *const u8) -> u64 {
         "add {tx}, {b4}",
         "add {inp}, 8",
     "30:", // load ty
-        "add {tx}, rax",
-        "xor {ty}, {ty}",
+        "mov {ty}, rax",
         "movzx {b1}, byte ptr [{inp}]",
         "movzx {b2}, byte ptr [{inp}+1]",
         "movzx {b3}, byte ptr [{inp}+2]",
@@ -321,7 +320,6 @@ unsafe fn p2_inner(input: *const u8) -> u64 {
         "add {ty}, {b4}",
         "add {inp}, 6",
     "40:", // calculate score and add to sum
-        "add {ty}, rax",
         "mov {b1}, {ax}",
         "imul {b1}, {by}",
         "mov {b4}, {ay}",
