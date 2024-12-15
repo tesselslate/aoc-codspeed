@@ -1,7 +1,7 @@
 use std::{
     hint::unreachable_unchecked,
     mem::MaybeUninit,
-    ops::{Add, BitAnd, Mul},
+    ops::{Add, BitAnd, Div, Mul, Sub},
     simd::{cmp::SimdPartialOrd, i32x8, u32x8},
 };
 
@@ -102,35 +102,34 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
 
     let mult = i32x8::splat(STEPS_P1);
 
+    let width = i32x8::splat(WIDTH);
+    let height = i32x8::splat(HEIGHT);
+
+    let zero = i32x8::splat(0);
+
     const _: () = assert!(NUM_ROBOTS / 8 == 62);
     for i in 0..NUM_ROBOTS_PAD8 / 8 {
         let xs = i32x8::from_array(*robots.x[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
         let vxs =
             i32x8::from_array(*robots.vx[i * 8..i * 8 + 8].as_array().unwrap_unchecked()).mul(mult);
-        xs.add(vxs).copy_to_slice(&mut robots.x[i * 8..i * 8 + 8]);
 
-        // let xs = xs.add(vxs);
-        // let div = xs.div(width).mul(width);
-        // xs.sub(div).copy_to_slice(&mut robots.x[i * 8..i * 8 + 8]);
+        let xs = xs.add(vxs);
+        let xs = xs.sub(xs.div(width).mul(width));
+        let addmask = xs.simd_lt(zero);
+        xs.add(addmask.select(width, zero))
+            .copy_to_slice(&mut robots.x[i * 8..i * 8 + 8]);
     }
 
     for i in 0..NUM_ROBOTS_PAD8 / 8 {
         let ys = i32x8::from_array(*robots.y[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
         let vys =
             i32x8::from_array(*robots.vy[i * 8..i * 8 + 8].as_array().unwrap_unchecked()).mul(mult);
-        ys.add(vys).copy_to_slice(&mut robots.y[i * 8..i * 8 + 8]);
 
-        // let ys = ys.add(vys);
-        // let div = ys.div(height).mul(height);
-        // ys.sub(div).copy_to_slice(&mut robots.y[i * 8..i * 8 + 8]);
-    }
-
-    for i in 0..NUM_ROBOTS {
-        robots.x[i] = robots.x[i].rem_euclid(WIDTH);
-    }
-
-    for i in 0..NUM_ROBOTS {
-        robots.y[i] = robots.y[i].rem_euclid(HEIGHT);
+        let ys = ys.add(vys);
+        let ys = ys.sub(ys.div(height).mul(height));
+        let addmask = ys.simd_lt(zero);
+        ys.add(addmask.select(height, zero))
+            .copy_to_slice(&mut robots.y[i * 8..i * 8 + 8]);
     }
 
     let xs_h = i32x8::splat(WIDTH / 2);
