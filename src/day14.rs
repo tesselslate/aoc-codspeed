@@ -196,17 +196,21 @@ unsafe fn any_ge<const N: usize>(data: &[u32; N], target: u32) -> bool {
 unsafe fn search_cols(robots: &mut Robots) -> i32 {
     let mut cols = [0; WIDTH as usize];
 
+    let width = i32x8::splat(WIDTH as i32);
+    let zero = i32x8::splat(0);
+
     for step in 0..103 {
         cols.iter_mut().for_each(|x| *x = 0);
 
         for i in 0..NUM_ROBOTS_PAD8 / 8 {
             let xs = i32x8::from_array(*robots.x[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
             let vxs = i32x8::from_array(*robots.vx[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
-            xs.add(vxs).copy_to_slice(&mut robots.x[i * 8..i * 8 + 8]);
-        }
 
-        for i in 0..NUM_ROBOTS {
-            robots.x[i] = robots.x[i].rem_euclid(WIDTH);
+            let xs = xs.add(vxs);
+            let xs = xs.sub(xs.div(width).mul(width));
+            let xs = xs.add(xs.simd_lt(zero).select(width, zero));
+
+            xs.copy_to_slice(&mut robots.x[i * 8..i * 8 + 8]);
         }
 
         for i in 0..NUM_ROBOTS {
@@ -228,17 +232,21 @@ unsafe fn search_cols(robots: &mut Robots) -> i32 {
 unsafe fn search_rows(robots: &mut Robots) -> i32 {
     let mut rows = [0; HEIGHT as usize];
 
+    let height = i32x8::splat(HEIGHT as i32);
+    let zero = i32x8::splat(0);
+
     for step in 0..103 {
         rows.iter_mut().for_each(|x| *x = 0);
 
         for i in 0..NUM_ROBOTS_PAD8 / 8 {
             let ys = i32x8::from_array(*robots.y[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
             let vys = i32x8::from_array(*robots.vy[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
-            ys.add(vys).copy_to_slice(&mut robots.y[i * 8..i * 8 + 8]);
-        }
 
-        for i in 0..NUM_ROBOTS {
-            robots.y[i] = robots.y[i].rem_euclid(HEIGHT);
+            let ys = ys.add(vys);
+            let ys = ys.sub(ys.div(height).mul(height));
+            let ys = ys.add(ys.simd_lt(zero).select(height, zero));
+
+            ys.copy_to_slice(&mut robots.y[i * 8..i * 8 + 8]);
         }
 
         for i in 0..NUM_ROBOTS {
