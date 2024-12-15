@@ -98,14 +98,18 @@ unsafe fn parse_vcoord<const DELIM: u8>(input: &mut *const u8) -> i32 {
 unsafe fn inner_p1(input: &[u8]) -> u64 {
     let mut robots = RobotsUninit::default();
     parse(input, &mut robots);
-    let mut robots: Robots = std::mem::transmute(robots);
+    let robots: Robots = std::mem::transmute(robots);
 
     let mult = i32x8::splat(STEPS_P1);
+    let zero = i32x8::splat(0);
 
     let width = i32x8::splat(WIDTH);
     let height = i32x8::splat(HEIGHT);
 
-    let zero = i32x8::splat(0);
+    let width_half = i32x8::splat(WIDTH / 2);
+    let height_half = i32x8::splat(HEIGHT / 2);
+
+    let mut quads = [0u64; 4];
 
     const _: () = assert!(NUM_ROBOTS / 8 == 62);
     for i in 0..NUM_ROBOTS_PAD8 / 8 {
@@ -115,36 +119,21 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
 
         let xs = xs.add(vxs);
         let xs = xs.sub(xs.div(width).mul(width));
-        let addmask = xs.simd_lt(zero);
-        xs.add(addmask.select(width, zero))
-            .copy_to_slice(&mut robots.x[i * 8..i * 8 + 8]);
-    }
+        let xs = xs.add(xs.simd_lt(zero).select(width, zero));
 
-    for i in 0..NUM_ROBOTS_PAD8 / 8 {
+        let xs_lt = xs.simd_lt(width_half);
+        let xs_gt = xs.simd_gt(width_half);
+
         let ys = i32x8::from_array(*robots.y[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
         let vys =
             i32x8::from_array(*robots.vy[i * 8..i * 8 + 8].as_array().unwrap_unchecked()).mul(mult);
 
         let ys = ys.add(vys);
         let ys = ys.sub(ys.div(height).mul(height));
-        let addmask = ys.simd_lt(zero);
-        ys.add(addmask.select(height, zero))
-            .copy_to_slice(&mut robots.y[i * 8..i * 8 + 8]);
-    }
+        let ys = ys.add(ys.simd_lt(zero).select(height, zero));
 
-    let xs_h = i32x8::splat(WIDTH / 2);
-    let ys_h = i32x8::splat(HEIGHT / 2);
-
-    let mut quads = [0u64; 4];
-
-    for i in 0..NUM_ROBOTS_PAD8 / 8 {
-        let xs = i32x8::from_array(*robots.x[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
-        let xs_lt = xs.simd_lt(xs_h);
-        let xs_gt = xs.simd_gt(xs_h);
-
-        let ys = i32x8::from_array(*robots.y[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
-        let ys_lt = ys.simd_lt(ys_h);
-        let ys_gt = ys.simd_gt(ys_h);
+        let ys_lt = ys.simd_lt(height_half);
+        let ys_gt = ys.simd_gt(height_half);
 
         quads[0] += xs_lt.bitand(ys_lt).to_bitmask().count_ones() as u64;
         quads[1] += xs_lt.bitand(ys_gt).to_bitmask().count_ones() as u64;
