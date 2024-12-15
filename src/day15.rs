@@ -124,30 +124,24 @@ struct Dirs<const DIR_LINES: usize, const DIR_LENGTH: usize> {
     data: *const u8,
 }
 
-impl<const DIR_LINES: usize, const DIR_LENGTH: usize> From<*const u8>
-    for Dirs<DIR_LINES, DIR_LENGTH>
-{
-    fn from(value: *const u8) -> Self {
+impl<const DIR_LINES: usize, const DIR_LENGTH: usize> Dirs<DIR_LINES, DIR_LENGTH> {
+    #[inline]
+    fn new(value: *const u8) -> Self {
         Self { data: value }
     }
-}
 
-impl<const DIR_LINES: usize, const DIR_LENGTH: usize> Iterator for Dirs<DIR_LINES, DIR_LENGTH> {
-    type Item = Dir;
-
-    /// SAFETY: This function will attempt to read past the end of the input
-    /// buffer if it is called too much
-    fn next(&mut self) -> Option<Self::Item> {
+    #[inline]
+    fn next(&mut self) -> Dir {
         unsafe {
-            let mut val = *self.data;
-            if val == b'\n' {
-                self.data = self.data.add(1);
-                val = *self.data;
-            }
+            let val = *self.data;
             self.data = self.data.add(1);
-
-            Some(Dir::from(val))
+            Dir::from(val)
         }
+    }
+
+    #[inline]
+    fn next_line(&mut self) {
+        unsafe { self.data = self.data.add(1) };
     }
 }
 
@@ -169,35 +163,39 @@ fn inner_p1<const SZ: usize, const W: usize, const DIR_LINES: usize, const DIR_L
     let mut grid = Grid::<SZ, W>::from_p1::<SZ, W>(input);
     let mut robot = find_robot_p1(&mut grid);
     let mut dirs =
-        Dirs::<DIR_LINES, DIR_LENGTH>::from(unsafe { input.as_bytes().as_ptr().add(SZ + W + 1) });
+        Dirs::<DIR_LINES, DIR_LENGTH>::new(unsafe { input.as_bytes().as_ptr().add(SZ + W + 1) });
 
-    for _ in 0..DIR_LINES * DIR_LENGTH {
-        let dir = unsafe { dirs.next().unwrap_unchecked() };
-        let pos = dir.step(robot);
+    for _ in 0..DIR_LINES {
+        for _ in 0..DIR_LENGTH {
+            let dir = dirs.next();
+            let pos = dir.step(robot);
 
-        match grid.get(pos) {
-            b'.' => robot = pos,
-            b'#' => (),
-            b'O' => {
-                let mut box_pos = pos;
+            match grid.get(pos) {
+                b'.' => robot = pos,
+                b'#' => (),
+                b'O' => {
+                    let mut box_pos = pos;
 
-                loop {
-                    if grid.get(box_pos) == b'.' {
-                        grid.set(pos, b'.');
-                        grid.set(box_pos, b'O');
-                        robot = pos;
-                        break;
-                    } else if grid.get(box_pos) == b'#' {
-                        break;
-                    } else {
-                        unsafe { std::hint::assert_unchecked(grid.get(box_pos) == b'O') };
+                    loop {
+                        if grid.get(box_pos) == b'.' {
+                            grid.set(pos, b'.');
+                            grid.set(box_pos, b'O');
+                            robot = pos;
+                            break;
+                        } else if grid.get(box_pos) == b'#' {
+                            break;
+                        } else {
+                            unsafe { std::hint::assert_unchecked(grid.get(box_pos) == b'O') };
+                        }
+
+                        box_pos = dir.step(box_pos);
                     }
-
-                    box_pos = dir.step(box_pos);
                 }
+                _ => unsafe { std::hint::unreachable_unchecked() },
             }
-            _ => unsafe { std::hint::unreachable_unchecked() },
         }
+
+        dirs.next_line();
     }
 
     let mut sum = 0;
