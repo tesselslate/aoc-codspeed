@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use std::{hint::unreachable_unchecked, mem::MaybeUninit};
 
 const NUM_ROBOTS: usize = 500;
 const STEPS_P1: i32 = 100;
@@ -154,64 +154,44 @@ fn any_ge<const N: usize>(data: &[u32; N], target: u32) -> bool {
     data.iter().find(|&&x| x >= target).is_some()
 }
 
-unsafe fn search<const ROWS: bool, const COLS: bool>(
-    start: usize,
-    rows: &mut [u32; HEIGHT as usize],
-    cols: &mut [u32; WIDTH as usize],
-    vpat: &mut i32,
-    hpat: &mut i32,
-    robots: &mut Robots,
-) {
-    for step in start..103 {
-        if ROWS {
-            rows.iter_mut().for_each(|x| *x = 0);
-        }
-        if COLS {
-            cols.iter_mut().for_each(|x| *x = 0);
-        }
+#[inline]
+unsafe fn search_cols(robots: &mut Robots) -> i32 {
+    let mut cols = [0; WIDTH as usize];
+
+    for step in 0..103 {
+        cols.iter_mut().for_each(|x| *x = 0);
 
         for i in 0..NUM_ROBOTS {
-            let pos = (robots.x[i], robots.y[i]);
-            let vel = (robots.vx[i], robots.vy[i]);
-
-            if ROWS {
-                robots.y[i] = (pos.1 + vel.1).rem_euclid(HEIGHT);
-                *rows.get_unchecked_mut(robots.y[i] as usize) += 1;
-            }
-            if COLS {
-                robots.x[i] = (pos.0 + vel.0).rem_euclid(WIDTH);
-                *cols.get_unchecked_mut(robots.x[i] as usize) += 1;
-            }
+            robots.x[i] = (robots.x[i] + robots.vx[i]).rem_euclid(WIDTH);
+            *cols.get_unchecked_mut(robots.x[i] as usize) += 1;
         }
 
-        if ROWS {
-            if any_ge(rows, 31) {
-                *hpat = step as i32;
-
-                if COLS {
-                    if any_ge(cols, 33) {
-                        *vpat = step as i32;
-                    } else {
-                        search::<false, true>(step + 1, rows, cols, vpat, hpat, robots);
-                    }
-                }
-
-                return;
-            }
-        }
-
-        if COLS {
-            if any_ge(cols, 33) {
-                *vpat = step as i32;
-
-                if ROWS {
-                    search::<true, false>(step + 1, rows, cols, vpat, hpat, robots);
-                }
-
-                return;
-            }
+        if any_ge(&cols, 33) {
+            return step as i32;
         }
     }
+
+    unreachable_unchecked()
+}
+
+#[inline]
+unsafe fn search_rows(robots: &mut Robots) -> i32 {
+    let mut rows = [0; HEIGHT as usize];
+
+    for step in 0..103 {
+        rows.iter_mut().for_each(|x| *x = 0);
+
+        for i in 0..NUM_ROBOTS {
+            robots.y[i] = (robots.y[i] + robots.vy[i]).rem_euclid(HEIGHT);
+            *rows.get_unchecked_mut(robots.y[i] as usize) += 1;
+        }
+
+        if any_ge(&rows, 31) {
+            return step as i32;
+        }
+    }
+
+    unreachable_unchecked()
 }
 
 #[inline(always)]
@@ -220,15 +200,8 @@ unsafe fn inner_p2(input: &[u8]) -> u32 {
     parse(input, &mut robots);
     let mut robots: Robots = std::mem::transmute(robots);
 
-    let (mut vpat, mut hpat) = (0, 0);
-    search::<true, true>(
-        0,
-        &mut [0; HEIGHT as usize],
-        &mut [0; WIDTH as usize],
-        &mut vpat,
-        &mut hpat,
-        &mut robots,
-    );
+    let hpat = search_rows(&mut robots);
+    let vpat = search_cols(&mut robots);
 
     lut_lookup(vpat, hpat)
 }
