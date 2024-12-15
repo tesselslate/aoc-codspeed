@@ -2,11 +2,11 @@
 struct Grid<const SZ: usize, const W: usize>([u8; SZ]);
 
 impl<const SZ: usize, const W: usize> Grid<SZ, W> {
-    pub fn from_p1<const DST_SZ: usize, const SRC_DIM: usize>(
+    pub unsafe fn from_p1<const DST_SZ: usize, const SRC_DIM: usize>(
         input: &str,
     ) -> Grid<DST_SZ, SRC_DIM> {
         let mut grid = [0; DST_SZ];
-        grid.copy_from_slice(unsafe { input.as_bytes().get_unchecked(..DST_SZ) });
+        grid.copy_from_slice(input.as_bytes().get_unchecked(..DST_SZ));
         Grid(grid)
     }
 
@@ -15,60 +15,11 @@ impl<const SZ: usize, const W: usize> Grid<SZ, W> {
     // ) -> Grid<DST_SZ, DST_DIM> {
     //     let mut grid = [MaybeUninit::<u8>::uninit(); DST_SZ];
     // }
-
-    #[inline]
-    pub fn get(&self, pt: Point<W>) -> u8 {
-        unsafe { *self.0.get_unchecked(pt.0 as usize) }
-    }
-
-    #[inline]
-    pub fn set(&mut self, pt: Point<W>, val: u8) {
-        unsafe { *self.0.get_unchecked_mut(pt.0 as usize) = val };
-    }
 }
 
 impl<const SZ: usize, const W: usize> ToString for Grid<SZ, W> {
     fn to_string(&self) -> String {
-        let mut str = String::with_capacity(SZ + W);
-
-        for row in 0..SZ / W {
-            for col in 0..W {
-                str.push(self.0[row * W + col] as char)
-            }
-            str.push('\n')
-        }
-
-        str
-    }
-}
-
-#[derive(Copy, Clone)]
-struct Point<const W: usize>(u32);
-
-impl<const W: usize> Point<W> {
-    #[inline]
-    pub fn from(row: u32, col: u32) -> Point<W> {
-        Point(row * W as u32 + col)
-    }
-
-    #[inline]
-    pub fn left(self) -> Self {
-        Point(self.0 - 1)
-    }
-
-    #[inline]
-    pub fn right(self) -> Self {
-        Point(self.0 + 1)
-    }
-
-    #[inline]
-    pub fn up(self) -> Self {
-        Point(self.0 - W as u32)
-    }
-
-    #[inline]
-    pub fn down(self) -> Self {
-        Point(self.0 + W as u32)
+        String::from_utf8_lossy(&self.0).to_string()
     }
 }
 
@@ -97,70 +48,63 @@ impl<const DIR_LINES: usize, const DIR_LENGTH: usize> Dirs<DIR_LINES, DIR_LENGTH
     }
 }
 
-#[inline]
-fn find_robot_p1<const SZ: usize, const W: usize>(grid: &mut Grid<SZ, W>) -> Point<W> {
-    for i in 0..SZ {
-        if grid.0[i] == b'@' {
-            grid.0[i] = b'.';
-            return Point(i as u32);
-        }
-    }
-
-    unsafe { std::hint::unreachable_unchecked() };
-}
-
-macro_rules! inner_p1_step {
-    ($grid: ident, $robot: ident, $pmove: ident) => {{
-        let pos = $robot.$pmove();
-
-        match $grid.get(pos) {
-            b'.' => $robot = pos,
-            b'#' => (),
-            b'O' => {
-                let mut box_pos = pos;
-
-                loop {
-                    if $grid.get(box_pos) == b'.' {
-                        $grid.set(pos, b'.');
-                        $grid.set(box_pos, b'O');
-                        $robot = pos;
-                        break;
-                    } else if $grid.get(box_pos) == b'#' {
-                        break;
-                    } else {
-                        unsafe { std::hint::assert_unchecked($grid.get(box_pos) == b'O') };
-                    }
-
-                    box_pos = box_pos.$pmove();
-                }
-            }
-            _ => unsafe { std::hint::unreachable_unchecked() },
-        }
-    }};
-}
-
-fn inner_p1<const SZ: usize, const W: usize, const DIR_LINES: usize, const DIR_LENGTH: usize>(
+unsafe fn inner_p1<
+    const SZ: usize,
+    const W: usize,
+    const DIR_LINES: usize,
+    const DIR_LENGTH: usize,
+>(
     input: &str,
 ) -> u32 {
+    #[allow(non_snake_case)]
+    let OFFSETS: [isize; 256] = {
+        let mut offsets = [0; 256];
+
+        offsets[b'<' as usize] = -1;
+        offsets[b'>' as usize] = 1;
+        offsets[b'^' as usize] = -(W as isize);
+        offsets[b'v' as usize] = W as isize;
+
+        offsets
+    };
+
     let mut grid = Grid::<SZ, W>::from_p1::<SZ, W>(input);
+    let mut dirs = Dirs::<DIR_LINES, DIR_LENGTH>::new(input.as_bytes().as_ptr().add(SZ + 1));
+
     let mut robot = if W == 51 {
         // real input is always centered
-        let robot = Point::from(24, 24);
-        grid.set(robot, b'.');
-        robot
+        grid.0.as_mut_ptr().add(24 * 51 + 24)
     } else {
-        find_robot_p1(&mut grid)
+        panic!();
     };
-    let mut dirs =
-        Dirs::<DIR_LINES, DIR_LENGTH>::new(unsafe { input.as_bytes().as_ptr().add(SZ + 1) });
+    *robot = b'.';
 
     for _ in 0..DIR_LINES {
         for _ in 0..DIR_LENGTH {
-            match dirs.next() {
-                b'<' => inner_p1_step!(grid, robot, left),
-                b'>' => inner_p1_step!(grid, robot, right),
-                b'^' => inner_p1_step!(grid, robot, up),
-                b'v' => inner_p1_step!(grid, robot, down),
+            let offset = OFFSETS[dirs.next() as usize];
+            let pos = unsafe { robot.offset(offset) };
+
+            match *pos {
+                b'.' => robot = pos,
+                b'#' => (),
+                b'O' => {
+                    let mut box_pos = pos;
+
+                    loop {
+                        if *box_pos == b'.' {
+                            *pos = b'.';
+                            *box_pos = b'O';
+                            robot = pos;
+                            break;
+                        } else if *box_pos == b'#' {
+                            break;
+                        } else {
+                            unsafe { std::hint::assert_unchecked(*box_pos == b'O') };
+                        }
+
+                        box_pos = box_pos.offset(offset);
+                    }
+                }
                 _ => unsafe { std::hint::unreachable_unchecked() },
             }
         }
@@ -170,7 +114,7 @@ fn inner_p1<const SZ: usize, const W: usize, const DIR_LINES: usize, const DIR_L
 
     let mut sum = 0;
     for i in 0..SZ {
-        if grid.get(Point(i as u32)) == b'O' {
+        if *grid.0.get_unchecked(i) == b'O' {
             sum += (i / W) * 100 + (i % W)
         }
     }
@@ -178,7 +122,7 @@ fn inner_p1<const SZ: usize, const W: usize, const DIR_LINES: usize, const DIR_L
 }
 
 pub fn part1(input: &str) -> u32 {
-    inner_p1::<2550, 51, 20, 1000>(input)
+    unsafe { inner_p1::<2550, 51, 20, 1000>(input) }
 }
 
 pub fn part2(input: &str) -> u32 {
@@ -205,12 +149,12 @@ mod tests {
 
     #[test]
     fn test_a1() {
-        assert_eq!(inner_p1::<110, 11, 10, 70>(TEST_1), 10092);
+        assert_eq!(unsafe { inner_p1::<110, 11, 10, 70>(TEST_1) }, 10092);
     }
 
     #[test]
     fn test_a2() {
-        assert_eq!(inner_p1::<72, 9, 1, 15>(TEST_2), 2028);
+        assert_eq!(unsafe { inner_p1::<72, 9, 1, 15>(TEST_2) }, 2028);
     }
 
     // #[test]
