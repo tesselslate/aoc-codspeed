@@ -11,6 +11,9 @@ const STEPS_P1: i32 = 100;
 const WIDTH: i32 = 101;
 const HEIGHT: i32 = 103;
 
+const WIDTH_OFFSET: i32 = 101000000;
+const HEIGHT_OFFSET: i32 = 103000000;
+
 #[repr(C)]
 struct Robots {
     x: [i32; NUM_ROBOTS_PAD8],
@@ -101,10 +104,12 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
     let robots: Robots = std::mem::transmute(robots);
 
     let mult = i32x8::splat(STEPS_P1);
-    let zero = i32x8::splat(0);
 
     let width = i32x8::splat(WIDTH);
     let height = i32x8::splat(HEIGHT);
+
+    let width_offset = i32x8::splat(WIDTH_OFFSET);
+    let height_offset = i32x8::splat(HEIGHT_OFFSET);
 
     let width_half = i32x8::splat(WIDTH / 2);
     let height_half = i32x8::splat(HEIGHT / 2);
@@ -117,9 +122,8 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
         let vxs =
             i32x8::from_array(*robots.vx[i * 8..i * 8 + 8].as_array().unwrap_unchecked()).mul(mult);
 
-        let xs = xs.add(vxs);
+        let xs = xs.add(vxs).add(width_offset);
         let xs = xs.sub(xs.div(width).mul(width));
-        let xs = xs.add(xs.simd_lt(zero).select(width, zero));
 
         let xs_lt = xs.simd_lt(width_half);
         let xs_gt = xs.simd_gt(width_half);
@@ -128,9 +132,8 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
         let vys =
             i32x8::from_array(*robots.vy[i * 8..i * 8 + 8].as_array().unwrap_unchecked()).mul(mult);
 
-        let ys = ys.add(vys);
+        let ys = ys.add(vys).add(height_offset);
         let ys = ys.sub(ys.div(height).mul(height));
-        let ys = ys.add(ys.simd_lt(zero).select(height, zero));
 
         let ys_lt = ys.simd_lt(height_half);
         let ys_gt = ys.simd_gt(height_half);
@@ -197,7 +200,7 @@ unsafe fn search_cols(robots: &mut Robots) -> i32 {
     let mut cols = [0; WIDTH as usize];
 
     let width = i32x8::splat(WIDTH as i32);
-    let zero = i32x8::splat(0);
+    let width_offset = i32x8::splat(WIDTH_OFFSET as i32);
 
     for step in 0..103 {
         cols.iter_mut().for_each(|x| *x = 0);
@@ -206,9 +209,8 @@ unsafe fn search_cols(robots: &mut Robots) -> i32 {
             let xs = i32x8::from_array(*robots.x[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
             let vxs = i32x8::from_array(*robots.vx[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
 
-            let xs = xs.add(vxs);
+            let xs = xs.add(vxs).add(width_offset);
             let xs = xs.sub(xs.div(width).mul(width));
-            let xs = xs.add(xs.simd_lt(zero).select(width, zero));
 
             xs.copy_to_slice(&mut robots.x[i * 8..i * 8 + 8]);
         }
@@ -233,7 +235,7 @@ unsafe fn search_rows(robots: &mut Robots) -> i32 {
     let mut rows = [0; HEIGHT as usize];
 
     let height = i32x8::splat(HEIGHT as i32);
-    let zero = i32x8::splat(0);
+    let height_offset = i32x8::splat(HEIGHT_OFFSET as i32);
 
     for step in 0..103 {
         rows.iter_mut().for_each(|x| *x = 0);
@@ -242,9 +244,8 @@ unsafe fn search_rows(robots: &mut Robots) -> i32 {
             let ys = i32x8::from_array(*robots.y[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
             let vys = i32x8::from_array(*robots.vy[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
 
-            let ys = ys.add(vys);
+            let ys = ys.add(vys).add(height_offset);
             let ys = ys.sub(ys.div(height).mul(height));
-            let ys = ys.add(ys.simd_lt(zero).select(height, zero));
 
             ys.copy_to_slice(&mut robots.y[i * 8..i * 8 + 8]);
         }
