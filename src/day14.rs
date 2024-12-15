@@ -48,17 +48,17 @@ impl Default for RobotsUninit {
 }
 
 #[inline(always)]
-unsafe fn parse_pcoord<const DELIM: u8>(input: &mut *const u8) -> i32 {
+unsafe fn parse_pcoord(input: &mut *const u8) -> i32 {
     let a = *input.add(0);
     let b = *input.add(1);
 
-    if b == DELIM {
+    if b < b'0' {
         *input = input.add(2);
         (a - b'0') as i32
     } else {
         let c = *input.add(2);
 
-        if c == DELIM {
+        if c < b'0' {
             *input = input.add(3);
             (a - b'0') as i32 * 10 + (b - b'0') as i32
         } else {
@@ -99,10 +99,7 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
     let mut ptr = input.as_ptr().add(2);
     let mut quads = [0u64; 4];
     for _ in 0..NUM_ROBOTS {
-        let mut pos = (
-            parse_pcoord::<b','>(&mut ptr),
-            parse_pcoord::<b' '>(&mut ptr),
-        );
+        let mut pos = (parse_pcoord(&mut ptr), parse_pcoord(&mut ptr));
         ptr = ptr.add(2);
 
         let vel = (
@@ -140,8 +137,8 @@ unsafe fn parse(input: &[u8], robots: &mut RobotsUninit) {
     let mut ptr = input.as_ptr().add(2);
 
     for idx in 0..NUM_ROBOTS {
-        robots.x[idx].write(parse_pcoord::<b','>(&mut ptr));
-        robots.y[idx].write(parse_pcoord::<b' '>(&mut ptr));
+        robots.x[idx].write(parse_pcoord(&mut ptr));
+        robots.y[idx].write(parse_pcoord(&mut ptr));
         ptr = ptr.add(2);
 
         robots.vx[idx].write(parse_vcoord::<b','>(&mut ptr));
