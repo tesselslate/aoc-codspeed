@@ -47,6 +47,11 @@ struct Point<const W: usize>(u32);
 
 impl<const W: usize> Point<W> {
     #[inline]
+    pub fn from(row: u32, col: u32) -> Point<W> {
+        Point(row * W as u32 + col)
+    }
+
+    #[inline]
     pub fn left(self) -> Self {
         Point(self.0 - 1)
     }
@@ -138,7 +143,14 @@ fn inner_p1<const SZ: usize, const W: usize, const DIR_LINES: usize, const DIR_L
     input: &str,
 ) -> u32 {
     let mut grid = Grid::<SZ, W>::from_p1::<SZ, W>(input);
-    let mut robot = find_robot_p1(&mut grid);
+    let mut robot = if W == 51 {
+        // real input is always centered
+        let robot = Point::from(24, 24);
+        grid.set(robot, b'.');
+        robot
+    } else {
+        find_robot_p1(&mut grid)
+    };
     let mut dirs =
         Dirs::<DIR_LINES, DIR_LENGTH>::new(unsafe { input.as_bytes().as_ptr().add(SZ + 1) });
 
