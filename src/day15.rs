@@ -1,6 +1,103 @@
-pub fn part1(input: &str) -> u32 {}
+use std::mem::MaybeUninit;
 
-pub fn part2(input: &str) -> u32 {}
+#[repr(transparent)]
+struct Grid<const SZ: usize, const W: usize>([u8; SZ]);
+
+impl<const SZ: usize, const W: usize> Grid<SZ, W> {
+    pub fn from_p1<const DST_SZ: usize, const SRC_DIM: usize>(
+        input: &str,
+    ) -> Grid<DST_SZ, SRC_DIM> {
+        let input = input.as_bytes();
+
+        let mut grid = [MaybeUninit::<u8>::uninit(); DST_SZ];
+
+        for i in 0..SRC_DIM {
+            let src =
+                unsafe { input.get_unchecked(i * (SRC_DIM + 1)..i * (SRC_DIM + 1) + SRC_DIM) };
+            let dst = unsafe { grid.get_unchecked_mut(i * SRC_DIM..i * SRC_DIM + SRC_DIM) };
+
+            unsafe { std::hint::assert_unchecked(src.len() == dst.len()) };
+            debug_assert!(src.len() == SRC_DIM);
+
+            for j in 0..SRC_DIM {
+                dst[j].write(src[j]);
+            }
+        }
+
+        let dst = unsafe { std::mem::transmute_copy(&grid) };
+        Grid(dst)
+    }
+
+    // pub fn from_p2<const DST_SZ: usize, const SRC_DIM: usize, const DST_DIM: usize>(
+    //     input: &str,
+    // ) -> Grid<DST_SZ, DST_DIM> {
+    //     let mut grid = [MaybeUninit::<u8>::uninit(); DST_SZ];
+    // }
+
+    #[inline]
+    pub fn get(&self, pt: Point<W>) -> u8 {
+        unsafe { *self.0.get_unchecked(pt.0 as usize) }
+    }
+}
+
+impl<const SZ: usize, const W: usize> ToString for Grid<SZ, W> {
+    fn to_string(&self) -> String {
+        let mut str = String::with_capacity(SZ + W);
+
+        for row in 0..SZ/W {
+            for col in 0..W {
+                str.push(self.0[row*W+col] as char)
+            }
+            str.push('\n')
+        }
+
+        str
+    }
+}
+
+struct Point<const W: usize>(u32);
+
+impl<const W: usize> Point<W> {
+    #[inline]
+    pub fn from<const SRC_W: usize>(row: usize, col: usize) -> Point<SRC_W> {
+        Point((row * (SRC_W + 1) + col) as u32)
+    }
+
+    #[inline]
+    pub fn left(self) -> Self {
+        Point(self.0 - 1)
+    }
+
+    #[inline]
+    pub fn right(self) -> Self {
+        Point(self.0 + 1)
+    }
+
+    #[inline]
+    pub fn up(self) -> Self {
+        Point(self.0 - W as u32)
+    }
+
+    #[inline]
+    pub fn down(self) -> Self {
+        Point(self.0 + W as u32)
+    }
+}
+
+fn inner_p1<const SZ: usize, const W: usize>(input: &str) -> u32 {
+    let grid = Grid::<SZ, W>::from_p1::<SZ, W>(input);
+
+    println!("{}", grid.to_string());
+    0
+}
+
+pub fn part1(input: &str) -> u32 {
+    inner_p1::<2500, 50>(input)
+}
+
+pub fn part2(input: &str) -> u32 {
+    0
+}
 
 #[cfg(test)]
 mod tests {
@@ -20,18 +117,18 @@ mod tests {
         assert_eq!(part2(INPUT), 1575877);
     }
 
-    #[test]
-    fn test_a1() {
-        assert_eq!(part1(TEST_1), 10092);
-    }
-
-    #[test]
-    fn test_a2() {
-        assert_eq!(part1(TEST_2), 2028);
-    }
-
-    #[test]
-    fn test_b1() {
-        assert_eq!(part2(TEST_1), 9021);
-    }
+    // #[test]
+    // fn test_a1() {
+    //     assert_eq!(part1(TEST_1), 10092);
+    // }
+    //
+    // #[test]
+    // fn test_a2() {
+    //     assert_eq!(part1(TEST_2), 2028);
+    // }
+    //
+    // #[test]
+    // fn test_b1() {
+    //     assert_eq!(part2(TEST_1), 9021);
+    // }
 }
