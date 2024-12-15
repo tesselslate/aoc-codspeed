@@ -84,8 +84,6 @@ unsafe fn parse_vcoord<const DELIM: u8>(input: &mut *const u8) -> i32 {
             }
         } else {
             *input = input.add(4);
-            // TODO: are there any 3 digit velocities (positive or negative)
-            debug_assert!(neg);
             -((b - b'0') as i32 * 10 + (c - b'0') as i32)
         }
     }
@@ -185,7 +183,10 @@ unsafe fn search_cols(robots: &mut Robots) -> i32 {
             *cols.get_unchecked_mut(robots.x[i] as usize) += 1;
         }
 
-        if any_ge(&cols, 33) {
+        if any_ge(
+            cols.get_unchecked(..80).as_array::<80>().unwrap_unchecked(),
+            33,
+        ) {
             return step as i32;
         }
     }
@@ -214,7 +215,10 @@ unsafe fn search_rows(robots: &mut Robots) -> i32 {
             *rows.get_unchecked_mut(robots.y[i] as usize) += 1;
         }
 
-        if any_ge(&rows, 31) {
+        if any_ge(
+            rows.get_unchecked(..80).as_array::<80>().unwrap_unchecked(),
+            31,
+        ) {
             return step as i32;
         }
     }
