@@ -1,5 +1,3 @@
-use std::mem::MaybeUninit;
-
 #[repr(transparent)]
 struct Grid<const SZ: usize, const W: usize>([u8; SZ]);
 
@@ -7,25 +5,9 @@ impl<const SZ: usize, const W: usize> Grid<SZ, W> {
     pub fn from_p1<const DST_SZ: usize, const SRC_DIM: usize>(
         input: &str,
     ) -> Grid<DST_SZ, SRC_DIM> {
-        let input = input.as_bytes();
-
-        let mut grid = [MaybeUninit::<u8>::uninit(); DST_SZ];
-
-        for i in 0..SRC_DIM {
-            let src =
-                unsafe { input.get_unchecked(i * (SRC_DIM + 1)..i * (SRC_DIM + 1) + SRC_DIM) };
-            let dst = unsafe { grid.get_unchecked_mut(i * SRC_DIM..i * SRC_DIM + SRC_DIM) };
-
-            unsafe { std::hint::assert_unchecked(src.len() == dst.len()) };
-            debug_assert!(src.len() == SRC_DIM);
-
-            for j in 0..SRC_DIM {
-                dst[j].write(src[j]);
-            }
-        }
-
-        let dst = unsafe { std::mem::transmute_copy(&grid) };
-        Grid(dst)
+        let mut grid = [0; DST_SZ];
+        grid.copy_from_slice(unsafe { input.as_bytes().get_unchecked(..DST_SZ) });
+        Grid(grid)
     }
 
     // pub fn from_p2<const DST_SZ: usize, const SRC_DIM: usize, const DST_DIM: usize>(
@@ -158,7 +140,7 @@ fn inner_p1<const SZ: usize, const W: usize, const DIR_LINES: usize, const DIR_L
     let mut grid = Grid::<SZ, W>::from_p1::<SZ, W>(input);
     let mut robot = find_robot_p1(&mut grid);
     let mut dirs =
-        Dirs::<DIR_LINES, DIR_LENGTH>::new(unsafe { input.as_bytes().as_ptr().add(SZ + W + 1) });
+        Dirs::<DIR_LINES, DIR_LENGTH>::new(unsafe { input.as_bytes().as_ptr().add(SZ + 1) });
 
     for _ in 0..DIR_LINES {
         for _ in 0..DIR_LENGTH {
@@ -184,7 +166,7 @@ fn inner_p1<const SZ: usize, const W: usize, const DIR_LINES: usize, const DIR_L
 }
 
 pub fn part1(input: &str) -> u32 {
-    inner_p1::<2500, 50, 20, 1000>(input)
+    inner_p1::<2550, 51, 20, 1000>(input)
 }
 
 pub fn part2(input: &str) -> u32 {
@@ -211,12 +193,12 @@ mod tests {
 
     #[test]
     fn test_a1() {
-        assert_eq!(inner_p1::<100, 10, 10, 70>(TEST_1), 10092);
+        assert_eq!(inner_p1::<110, 11, 10, 70>(TEST_1), 10092);
     }
 
     #[test]
     fn test_a2() {
-        assert_eq!(inner_p1::<64, 8, 1, 15>(TEST_2), 2028);
+        assert_eq!(inner_p1::<72, 9, 1, 15>(TEST_2), 2028);
     }
 
     // #[test]
