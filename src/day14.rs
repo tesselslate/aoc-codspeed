@@ -1,4 +1,7 @@
-use std::mem::MaybeUninit;
+use std::{
+    mem::MaybeUninit,
+    simd::{cmp::SimdPartialOrd, u32x4},
+};
 
 const NUM_ROBOTS: usize = 500;
 const STEPS_P1: i32 = 100;
@@ -143,6 +146,11 @@ fn lut_lookup(vpat: i32, hpat: i32) -> u32 {
     })
 }
 
+#[inline]
+fn any_ge<const N: usize>(data: &[u32; N], target: u32) -> bool {
+    data.iter().find(|&&x| x >= target).is_some()
+}
+
 unsafe fn search<const ROWS: bool, const COLS: bool>(
     start: usize,
     rows: &mut [u32; HEIGHT as usize],
@@ -174,11 +182,11 @@ unsafe fn search<const ROWS: bool, const COLS: bool>(
         }
 
         if ROWS {
-            if *rows.iter().max().unwrap_unchecked() > 25 {
+            if any_ge(rows, 31) {
                 *hpat = step as i32;
 
                 if COLS {
-                    if *cols.iter().max().unwrap_unchecked() > 25 {
+                    if any_ge(cols, 33) {
                         *vpat = step as i32;
                     } else {
                         search::<false, true>(step + 1, rows, cols, vpat, hpat, robots);
@@ -190,7 +198,7 @@ unsafe fn search<const ROWS: bool, const COLS: bool>(
         }
 
         if COLS {
-            if *cols.iter().max().unwrap_unchecked() > 25 {
+            if any_ge(cols, 33) {
                 *vpat = step as i32;
 
                 if ROWS {
