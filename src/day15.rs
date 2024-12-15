@@ -38,15 +38,20 @@ impl<const SZ: usize, const W: usize> Grid<SZ, W> {
     pub fn get(&self, pt: Point<W>) -> u8 {
         unsafe { *self.0.get_unchecked(pt.0 as usize) }
     }
+
+    #[inline]
+    pub fn set(&mut self, pt: Point<W>, val: u8) {
+        unsafe { *self.0.get_unchecked_mut(pt.0 as usize) = val };
+    }
 }
 
 impl<const SZ: usize, const W: usize> ToString for Grid<SZ, W> {
     fn to_string(&self) -> String {
         let mut str = String::with_capacity(SZ + W);
 
-        for row in 0..SZ/W {
+        for row in 0..SZ / W {
             for col in 0..W {
-                str.push(self.0[row*W+col] as char)
+                str.push(self.0[row * W + col] as char)
             }
             str.push('\n')
         }
@@ -55,14 +60,10 @@ impl<const SZ: usize, const W: usize> ToString for Grid<SZ, W> {
     }
 }
 
+#[derive(Copy, Clone)]
 struct Point<const W: usize>(u32);
 
 impl<const W: usize> Point<W> {
-    #[inline]
-    pub fn from<const SRC_W: usize>(row: usize, col: usize) -> Point<SRC_W> {
-        Point((row * (SRC_W + 1) + col) as u32)
-    }
-
     #[inline]
     pub fn left(self) -> Self {
         Point(self.0 - 1)
@@ -84,15 +85,132 @@ impl<const W: usize> Point<W> {
     }
 }
 
-fn inner_p1<const SZ: usize, const W: usize>(input: &str) -> u32 {
-    let grid = Grid::<SZ, W>::from_p1::<SZ, W>(input);
+#[repr(u8)]
+#[derive(Copy, Clone)]
+enum Dir {
+    Left = b'<',
+    Right = b'>',
+    Up = b'^',
+    Down = b'v',
+}
 
-    println!("{}", grid.to_string());
-    0
+impl Dir {
+    #[inline]
+    pub fn step<const W: usize>(&self, pt: Point<W>) -> Point<W> {
+        match self {
+            Self::Left => pt.left(),
+            Self::Right => pt.right(),
+            Self::Up => pt.up(),
+            Self::Down => pt.down(),
+        }
+    }
+}
+
+impl From<u8> for Dir {
+    fn from(value: u8) -> Self {
+        unsafe {
+            match value {
+                b'<' => Self::Left,
+                b'>' => Self::Right,
+                b'v' => Self::Down,
+                b'^' => Self::Up,
+                _ => std::hint::unreachable_unchecked(),
+            }
+        }
+    }
+}
+
+struct Dirs<const DIR_LINES: usize, const DIR_LENGTH: usize> {
+    data: *const u8,
+}
+
+impl<const DIR_LINES: usize, const DIR_LENGTH: usize> From<*const u8>
+    for Dirs<DIR_LINES, DIR_LENGTH>
+{
+    fn from(value: *const u8) -> Self {
+        Self { data: value }
+    }
+}
+
+impl<const DIR_LINES: usize, const DIR_LENGTH: usize> Iterator for Dirs<DIR_LINES, DIR_LENGTH> {
+    type Item = Dir;
+
+    /// SAFETY: This function will attempt to read past the end of the input
+    /// buffer if it is called too much
+    fn next(&mut self) -> Option<Self::Item> {
+        unsafe {
+            let mut val = *self.data;
+            if val == b'\n' {
+                self.data = self.data.add(1);
+                val = *self.data;
+            }
+            self.data = self.data.add(1);
+
+            Some(Dir::from(val))
+        }
+    }
+}
+
+#[inline]
+fn find_robot_p1<const SZ: usize, const W: usize>(grid: &mut Grid<SZ, W>) -> Point<W> {
+    for i in 0..SZ {
+        if grid.0[i] == b'@' {
+            grid.0[i] = b'.';
+            return Point(i as u32);
+        }
+    }
+
+    unsafe { std::hint::unreachable_unchecked() };
+}
+
+fn inner_p1<const SZ: usize, const W: usize, const DIR_LINES: usize, const DIR_LENGTH: usize>(
+    input: &str,
+) -> u32 {
+    let mut grid = Grid::<SZ, W>::from_p1::<SZ, W>(input);
+    let mut robot = find_robot_p1(&mut grid);
+    let mut dirs =
+        Dirs::<DIR_LINES, DIR_LENGTH>::from(unsafe { input.as_bytes().as_ptr().add(SZ + W + 1) });
+
+    for _ in 0..DIR_LINES * DIR_LENGTH {
+        let dir = unsafe { dirs.next().unwrap_unchecked() };
+        let pos = dir.step(robot);
+
+        match grid.get(pos) {
+            b'.' => robot = pos,
+            b'#' => (),
+            b'O' => {
+                let mut box_pos = pos;
+
+                loop {
+                    if grid.get(box_pos) == b'.' {
+                        grid.set(pos, b'.');
+                        grid.set(box_pos, b'O');
+                        robot = pos;
+                        break;
+                    } else if grid.get(box_pos) == b'#' {
+                        break;
+                    } else {
+                        unsafe { std::hint::assert_unchecked(grid.get(box_pos) == b'O') };
+                    }
+
+                    box_pos = dir.step(box_pos);
+                }
+            }
+            _ => unsafe { std::hint::unreachable_unchecked() },
+        }
+    }
+
+    let mut sum = 0;
+    for i in 0..SZ {
+        if grid.get(Point(i as u32)) == b'O' {
+            sum += (i / W) * 100 + (i % W)
+        }
+    }
+    sum as u32
 }
 
 pub fn part1(input: &str) -> u32 {
-    inner_p1::<2500, 50>(input)
+    inner_p1::<2500, 50, 20, 1000>(input)
 }
 
 pub fn part2(input: &str) -> u32 {
@@ -117,16 +235,16 @@ mod tests {
         assert_eq!(part2(INPUT), 1575877);
     }
 
-    // #[test]
-    // fn test_a1() {
-    //     assert_eq!(part1(TEST_1), 10092);
-    // }
-    //
-    // #[test]
-    // fn test_a2() {
-    //     assert_eq!(part1(TEST_2), 2028);
-    // }
-    //
+    #[test]
+    fn test_a1() {
+        assert_eq!(inner_p1::<100, 10, 10, 70>(TEST_1), 10092);
+    }
+
+    #[test]
+    fn test_a2() {
+        assert_eq!(inner_p1::<64, 8, 1, 15>(TEST_2), 2028);
+    }
+
     // #[test]
     // fn test_b1() {
     //     assert_eq!(part2(TEST_1), 9021);
