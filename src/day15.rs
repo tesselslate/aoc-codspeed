@@ -85,41 +85,6 @@ impl<const W: usize> Point<W> {
     }
 }
 
-#[repr(u8)]
-#[derive(Copy, Clone)]
-enum Dir {
-    Left = b'<',
-    Right = b'>',
-    Up = b'^',
-    Down = b'v',
-}
-
-impl Dir {
-    #[inline]
-    pub fn step<const W: usize>(&self, pt: Point<W>) -> Point<W> {
-        match self {
-            Self::Left => pt.left(),
-            Self::Right => pt.right(),
-            Self::Up => pt.up(),
-            Self::Down => pt.down(),
-        }
-    }
-}
-
-impl From<u8> for Dir {
-    fn from(value: u8) -> Self {
-        unsafe {
-            match value {
-                b'<' => Self::Left,
-                b'>' => Self::Right,
-                b'v' => Self::Down,
-                b'^' => Self::Up,
-                _ => std::hint::unreachable_unchecked(),
-            }
-        }
-    }
-}
-
 struct Dirs<const DIR_LINES: usize, const DIR_LENGTH: usize> {
     data: *const u8,
 }
@@ -131,11 +96,11 @@ impl<const DIR_LINES: usize, const DIR_LENGTH: usize> Dirs<DIR_LINES, DIR_LENGTH
     }
 
     #[inline]
-    fn next(&mut self) -> Dir {
+    fn next(&mut self) -> u8 {
         unsafe {
             let val = *self.data;
             self.data = self.data.add(1);
-            Dir::from(val)
+            val
         }
     }
 
@@ -157,6 +122,36 @@ fn find_robot_p1<const SZ: usize, const W: usize>(grid: &mut Grid<SZ, W>) -> Poi
     unsafe { std::hint::unreachable_unchecked() };
 }
 
+macro_rules! inner_p1_step {
+    ($grid: ident, $robot: ident, $pmove: ident) => {{
+        let pos = $robot.$pmove();
+
+        match $grid.get(pos) {
+            b'.' => $robot = pos,
+            b'#' => (),
+            b'O' => {
+                let mut box_pos = pos;
+
+                loop {
+                    if $grid.get(box_pos) == b'.' {
+                        $grid.set(pos, b'.');
+                        $grid.set(box_pos, b'O');
+                        $robot = pos;
+                        break;
+                    } else if $grid.get(box_pos) == b'#' {
+                        break;
+                    } else {
+                        unsafe { std::hint::assert_unchecked($grid.get(box_pos) == b'O') };
+                    }
+
+                    box_pos = box_pos.$pmove();
+                }
+            }
+            _ => unsafe { std::hint::unreachable_unchecked() },
+        }
+    }};
+}
+
 fn inner_p1<const SZ: usize, const W: usize, const DIR_LINES: usize, const DIR_LENGTH: usize>(
     input: &str,
 ) -> u32 {
@@ -167,30 +162,11 @@ fn inner_p1<const SZ: usize, const W: usize, const DIR_LINES: usize, const DIR_L
 
     for _ in 0..DIR_LINES {
         for _ in 0..DIR_LENGTH {
-            let dir = dirs.next();
-            let pos = dir.step(robot);
-
-            match grid.get(pos) {
-                b'.' => robot = pos,
-                b'#' => (),
-                b'O' => {
-                    let mut box_pos = pos;
-
-                    loop {
-                        if grid.get(box_pos) == b'.' {
-                            grid.set(pos, b'.');
-                            grid.set(box_pos, b'O');
-                            robot = pos;
-                            break;
-                        } else if grid.get(box_pos) == b'#' {
-                            break;
-                        } else {
-                            unsafe { std::hint::assert_unchecked(grid.get(box_pos) == b'O') };
-                        }
-
-                        box_pos = dir.step(box_pos);
-                    }
-                }
+            match dirs.next() {
+                b'<' => inner_p1_step!(grid, robot, left),
+                b'>' => inner_p1_step!(grid, robot, right),
+                b'^' => inner_p1_step!(grid, robot, up),
+                b'v' => inner_p1_step!(grid, robot, down),
                 _ => unsafe { std::hint::unreachable_unchecked() },
             }
         }
