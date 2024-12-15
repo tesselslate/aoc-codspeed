@@ -47,22 +47,13 @@ unsafe fn inner_p1<
     grid.copy_from_slice(input.as_bytes().get_unchecked(..2550));
     let mut dirs = Dirs::<DIR_LINES, DIR_LENGTH>::new(input.as_bytes().as_ptr().add(SZ + 1));
 
-    let mut robot = if W == 51 {
-        // real input is always centered
-        grid.as_mut_ptr().add(24 * 51 + 24)
-    } else {
-        let mut ptr = grid.as_mut_ptr();
-        while *ptr != b'@' {
-            ptr = ptr.add(1);
-        }
-        ptr
-    };
+    let mut robot = grid.as_mut_ptr().add(24 * 51 + 24);
     *robot = b'.';
 
     for _ in 0..DIR_LINES {
         for _ in 0..DIR_LENGTH {
             let offset = OFFSETS[dirs.next() as usize];
-            let pos = unsafe { robot.offset(offset) };
+            let pos = robot.offset(offset);
 
             match *pos {
                 b'.' => robot = pos,
@@ -79,13 +70,13 @@ unsafe fn inner_p1<
                         } else if *box_pos == b'#' {
                             break;
                         } else {
-                            unsafe { std::hint::assert_unchecked(*box_pos == b'O') };
+                            std::hint::assert_unchecked(*box_pos == b'O');
                         }
 
                         box_pos = box_pos.offset(offset);
                     }
                 }
-                _ => unsafe { std::hint::unreachable_unchecked() },
+                _ => std::hint::unreachable_unchecked(),
             }
         }
 
