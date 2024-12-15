@@ -1,34 +1,44 @@
 use std::{hint::unreachable_unchecked, mem::MaybeUninit};
 
 const NUM_ROBOTS: usize = 500;
+const NUM_ROBOTS_PAD8: usize = 504;
 const STEPS_P1: i32 = 100;
 const WIDTH: i32 = 101;
 const HEIGHT: i32 = 103;
 
 #[repr(C)]
 struct Robots {
-    x: [i32; NUM_ROBOTS],
-    y: [i32; NUM_ROBOTS],
-    vx: [i32; NUM_ROBOTS],
-    vy: [i32; NUM_ROBOTS],
+    x: [i32; NUM_ROBOTS_PAD8],
+    y: [i32; NUM_ROBOTS_PAD8],
+    vx: [i32; NUM_ROBOTS_PAD8],
+    vy: [i32; NUM_ROBOTS_PAD8],
 }
 
 #[repr(C)]
 struct RobotsUninit {
-    x: [MaybeUninit<i32>; NUM_ROBOTS],
-    y: [MaybeUninit<i32>; NUM_ROBOTS],
-    vx: [MaybeUninit<i32>; NUM_ROBOTS],
-    vy: [MaybeUninit<i32>; NUM_ROBOTS],
+    x: [MaybeUninit<i32>; NUM_ROBOTS_PAD8],
+    y: [MaybeUninit<i32>; NUM_ROBOTS_PAD8],
+    vx: [MaybeUninit<i32>; NUM_ROBOTS_PAD8],
+    vy: [MaybeUninit<i32>; NUM_ROBOTS_PAD8],
 }
 
 impl Default for RobotsUninit {
     fn default() -> Self {
-        Self {
-            x: [MaybeUninit::uninit(); NUM_ROBOTS],
-            y: [MaybeUninit::uninit(); NUM_ROBOTS],
-            vx: [MaybeUninit::uninit(); NUM_ROBOTS],
-            vy: [MaybeUninit::uninit(); NUM_ROBOTS],
+        let mut this = Self {
+            x: [MaybeUninit::uninit(); NUM_ROBOTS_PAD8],
+            y: [MaybeUninit::uninit(); NUM_ROBOTS_PAD8],
+            vx: [MaybeUninit::uninit(); NUM_ROBOTS_PAD8],
+            vy: [MaybeUninit::uninit(); NUM_ROBOTS_PAD8],
+        };
+
+        for i in NUM_ROBOTS..NUM_ROBOTS_PAD8 {
+            this.x[i].write(0);
+            this.y[i].write(0);
+            this.vx[i].write(0);
+            this.vy[i].write(0);
         }
+
+        this
     }
 }
 
@@ -161,7 +171,7 @@ unsafe fn search_cols(robots: &mut Robots) -> i32 {
     for step in 0..103 {
         cols.iter_mut().for_each(|x| *x = 0);
 
-        for i in 0..NUM_ROBOTS {
+        for i in 0..NUM_ROBOTS_PAD8 {
             robots.x[i] = (robots.x[i] + robots.vx[i]).rem_euclid(WIDTH);
             *cols.get_unchecked_mut(robots.x[i] as usize) += 1;
         }
@@ -181,7 +191,7 @@ unsafe fn search_rows(robots: &mut Robots) -> i32 {
     for step in 0..103 {
         rows.iter_mut().for_each(|x| *x = 0);
 
-        for i in 0..NUM_ROBOTS {
+        for i in 0..NUM_ROBOTS_PAD8 {
             robots.y[i] = (robots.y[i] + robots.vy[i]).rem_euclid(HEIGHT);
             *rows.get_unchecked_mut(robots.y[i] as usize) += 1;
         }
