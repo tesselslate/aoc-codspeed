@@ -1,7 +1,4 @@
-use std::{
-    mem::MaybeUninit,
-    simd::{cmp::SimdPartialOrd, u32x4},
-};
+use std::mem::MaybeUninit;
 
 const NUM_ROBOTS: usize = 500;
 const STEPS_P1: i32 = 100;
@@ -10,21 +7,27 @@ const HEIGHT: i32 = 103;
 
 #[repr(C)]
 struct Robots {
-    pos: [(i32, i32); NUM_ROBOTS],
-    vel: [(i32, i32); NUM_ROBOTS],
+    x: [i32; NUM_ROBOTS],
+    y: [i32; NUM_ROBOTS],
+    vx: [i32; NUM_ROBOTS],
+    vy: [i32; NUM_ROBOTS],
 }
 
 #[repr(C)]
 struct RobotsUninit {
-    pos: [(MaybeUninit<i32>, MaybeUninit<i32>); NUM_ROBOTS],
-    vel: [(MaybeUninit<i32>, MaybeUninit<i32>); NUM_ROBOTS],
+    x: [MaybeUninit<i32>; NUM_ROBOTS],
+    y: [MaybeUninit<i32>; NUM_ROBOTS],
+    vx: [MaybeUninit<i32>; NUM_ROBOTS],
+    vy: [MaybeUninit<i32>; NUM_ROBOTS],
 }
 
 impl Default for RobotsUninit {
     fn default() -> Self {
         Self {
-            pos: [(MaybeUninit::uninit(), MaybeUninit::uninit()); NUM_ROBOTS],
-            vel: [(MaybeUninit::uninit(), MaybeUninit::uninit()); NUM_ROBOTS],
+            x: [MaybeUninit::uninit(); NUM_ROBOTS],
+            y: [MaybeUninit::uninit(); NUM_ROBOTS],
+            vx: [MaybeUninit::uninit(); NUM_ROBOTS],
+            vy: [MaybeUninit::uninit(); NUM_ROBOTS],
         }
     }
 }
@@ -124,12 +127,12 @@ unsafe fn parse(input: &[u8], robots: &mut RobotsUninit) {
     let mut ptr = input.as_ptr().add(2);
 
     for idx in 0..NUM_ROBOTS {
-        robots.pos[idx].0.write(parse_pcoord::<b','>(&mut ptr));
-        robots.pos[idx].1.write(parse_pcoord::<b' '>(&mut ptr));
+        robots.x[idx].write(parse_pcoord::<b','>(&mut ptr));
+        robots.y[idx].write(parse_pcoord::<b' '>(&mut ptr));
         ptr = ptr.add(2);
 
-        robots.vel[idx].0.write(parse_vcoord::<b','>(&mut ptr));
-        robots.vel[idx].1.write(parse_vcoord::<b'\n'>(&mut ptr));
+        robots.vx[idx].write(parse_vcoord::<b','>(&mut ptr));
+        robots.vy[idx].write(parse_vcoord::<b'\n'>(&mut ptr));
         ptr = ptr.add(2);
     }
 }
@@ -168,16 +171,16 @@ unsafe fn search<const ROWS: bool, const COLS: bool>(
         }
 
         for i in 0..NUM_ROBOTS {
-            let pos = &mut robots.pos[i];
-            let vel = &robots.vel[i];
+            let pos = (robots.x[i], robots.y[i]);
+            let vel = (robots.vx[i], robots.vy[i]);
 
             if ROWS {
-                pos.1 = (pos.1 + vel.1).rem_euclid(HEIGHT);
-                *rows.get_unchecked_mut(pos.1 as usize) += 1;
+                robots.y[i] = (pos.1 + vel.1).rem_euclid(HEIGHT);
+                *rows.get_unchecked_mut(robots.y[i] as usize) += 1;
             }
             if COLS {
-                pos.0 = (pos.0 + vel.0).rem_euclid(WIDTH);
-                *cols.get_unchecked_mut(pos.0 as usize) += 1;
+                robots.x[i] = (pos.0 + vel.0).rem_euclid(WIDTH);
+                *cols.get_unchecked_mut(robots.x[i] as usize) += 1;
             }
         }
 
