@@ -75,7 +75,11 @@ unsafe fn inner_p1<
         // real input is always centered
         grid.0.as_mut_ptr().add(24 * 51 + 24)
     } else {
-        panic!();
+        let mut ptr = grid.0.as_mut_ptr();
+        while *ptr != b'@' {
+            ptr = ptr.add(1);
+        }
+        ptr
     };
     *robot = b'.';
 
