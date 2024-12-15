@@ -1,7 +1,7 @@
 use std::{
     hint::unreachable_unchecked,
     mem::MaybeUninit,
-    ops::Add,
+    ops::{Add, BitAnd, Mul},
     simd::{cmp::SimdPartialOrd, i32x8, u32x8},
 };
 
@@ -37,8 +37,8 @@ impl Default for RobotsUninit {
         };
 
         for i in NUM_ROBOTS..NUM_ROBOTS_PAD8 {
-            this.x[i].write(0);
-            this.y[i].write(0);
+            this.x[i].write(50);
+            this.y[i].write(51);
             this.vx[i].write(0);
             this.vy[i].write(0);
         }
@@ -96,34 +96,61 @@ unsafe fn parse_vcoord<const DELIM: u8>(input: &mut *const u8) -> i32 {
 
 #[inline(always)]
 unsafe fn inner_p1(input: &[u8]) -> u64 {
-    let mut ptr = input.as_ptr().add(2);
+    let mut robots = RobotsUninit::default();
+    parse(input, &mut robots);
+    let mut robots: Robots = std::mem::transmute(robots);
+
+    let mult = i32x8::splat(STEPS_P1);
+
+    const _: () = assert!(NUM_ROBOTS / 8 == 62);
+    for i in 0..NUM_ROBOTS_PAD8 / 8 {
+        let xs = i32x8::from_array(*robots.x[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
+        let vxs =
+            i32x8::from_array(*robots.vx[i * 8..i * 8 + 8].as_array().unwrap_unchecked()).mul(mult);
+        xs.add(vxs).copy_to_slice(&mut robots.x[i * 8..i * 8 + 8]);
+
+        // let xs = xs.add(vxs);
+        // let div = xs.div(width).mul(width);
+        // xs.sub(div).copy_to_slice(&mut robots.x[i * 8..i * 8 + 8]);
+    }
+
+    for i in 0..NUM_ROBOTS_PAD8 / 8 {
+        let ys = i32x8::from_array(*robots.y[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
+        let vys =
+            i32x8::from_array(*robots.vy[i * 8..i * 8 + 8].as_array().unwrap_unchecked()).mul(mult);
+        ys.add(vys).copy_to_slice(&mut robots.y[i * 8..i * 8 + 8]);
+
+        // let ys = ys.add(vys);
+        // let div = ys.div(height).mul(height);
+        // ys.sub(div).copy_to_slice(&mut robots.y[i * 8..i * 8 + 8]);
+    }
+
+    for i in 0..NUM_ROBOTS {
+        robots.x[i] = robots.x[i].rem_euclid(WIDTH);
+    }
+
+    for i in 0..NUM_ROBOTS {
+        robots.y[i] = robots.y[i].rem_euclid(HEIGHT);
+    }
+
+    let xs_h = i32x8::splat(WIDTH / 2);
+    let ys_h = i32x8::splat(HEIGHT / 2);
+
     let mut quads = [0u64; 4];
-    for _ in 0..NUM_ROBOTS {
-        let mut pos = (parse_pcoord(&mut ptr), parse_pcoord(&mut ptr));
-        ptr = ptr.add(2);
 
-        let vel = (
-            parse_vcoord::<b','>(&mut ptr),
-            parse_vcoord::<b'\n'>(&mut ptr),
-        );
-        ptr = ptr.add(2);
+    for i in 0..NUM_ROBOTS_PAD8 / 8 {
+        let xs = i32x8::from_array(*robots.x[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
+        let xs_lt = xs.simd_lt(xs_h);
+        let xs_gt = xs.simd_gt(xs_h);
 
-        pos.0 = (pos.0 + vel.0 * STEPS_P1).rem_euclid(WIDTH);
-        pos.1 = (pos.1 + vel.1 * STEPS_P1).rem_euclid(HEIGHT);
+        let ys = i32x8::from_array(*robots.y[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
+        let ys_lt = ys.simd_lt(ys_h);
+        let ys_gt = ys.simd_gt(ys_h);
 
-        if pos.0 < WIDTH / 2 {
-            if pos.1 < HEIGHT / 2 {
-                quads[0] += 1;
-            } else if pos.1 > HEIGHT / 2 {
-                quads[1] += 1;
-            }
-        } else if pos.0 > WIDTH / 2 {
-            if pos.1 < HEIGHT / 2 {
-                quads[2] += 1;
-            } else if pos.1 > HEIGHT / 2 {
-                quads[3] += 1;
-            }
-        }
+        quads[0] += xs_lt.bitand(ys_lt).to_bitmask().count_ones() as u64;
+        quads[1] += xs_lt.bitand(ys_gt).to_bitmask().count_ones() as u64;
+        quads[2] += xs_gt.bitand(ys_lt).to_bitmask().count_ones() as u64;
+        quads[3] += xs_gt.bitand(ys_gt).to_bitmask().count_ones() as u64;
     }
 
     quads[0] * quads[1] * quads[2] * quads[3]
