@@ -1,6 +1,7 @@
 #![feature(array_chunks)]
 #![feature(iter_array_chunks)]
 #![feature(portable_simd)]
+#![feature(slice_as_array)]
 
 extern crate aoc_runner;
 

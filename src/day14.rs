@@ -1,4 +1,4 @@
-use std::{hint::unreachable_unchecked, mem::MaybeUninit};
+use std::{hint::unreachable_unchecked, mem::MaybeUninit, ops::Add, simd::i32x8};
 
 const NUM_ROBOTS: usize = 500;
 const NUM_ROBOTS_PAD8: usize = 504;
@@ -171,8 +171,17 @@ unsafe fn search_cols(robots: &mut Robots) -> i32 {
     for step in 0..103 {
         cols.iter_mut().for_each(|x| *x = 0);
 
-        for i in 0..NUM_ROBOTS_PAD8 {
-            robots.x[i] = (robots.x[i] + robots.vx[i]).rem_euclid(WIDTH);
+        for i in 0..NUM_ROBOTS_PAD8 / 8 {
+            let xs = i32x8::from_array(*robots.x[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
+            let vxs = i32x8::from_array(*robots.vx[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
+            xs.add(vxs).copy_to_slice(&mut robots.x[i * 8..i * 8 + 8]);
+        }
+
+        for i in 0..NUM_ROBOTS {
+            robots.x[i] = robots.x[i].rem_euclid(WIDTH);
+        }
+
+        for i in 0..NUM_ROBOTS {
             *cols.get_unchecked_mut(robots.x[i] as usize) += 1;
         }
 
@@ -191,8 +200,17 @@ unsafe fn search_rows(robots: &mut Robots) -> i32 {
     for step in 0..103 {
         rows.iter_mut().for_each(|x| *x = 0);
 
-        for i in 0..NUM_ROBOTS_PAD8 {
-            robots.y[i] = (robots.y[i] + robots.vy[i]).rem_euclid(HEIGHT);
+        for i in 0..NUM_ROBOTS_PAD8 / 8 {
+            let ys = i32x8::from_array(*robots.y[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
+            let vys = i32x8::from_array(*robots.vy[i * 8..i * 8 + 8].as_array().unwrap_unchecked());
+            ys.add(vys).copy_to_slice(&mut robots.y[i * 8..i * 8 + 8]);
+        }
+
+        for i in 0..NUM_ROBOTS {
+            robots.y[i] = robots.y[i].rem_euclid(HEIGHT);
+        }
+
+        for i in 0..NUM_ROBOTS {
             *rows.get_unchecked_mut(robots.y[i] as usize) += 1;
         }
 
