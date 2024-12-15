@@ -1,4 +1,9 @@
-use std::{hint::unreachable_unchecked, mem::MaybeUninit, ops::Add, simd::i32x8};
+use std::{
+    hint::unreachable_unchecked,
+    mem::MaybeUninit,
+    ops::Add,
+    simd::{cmp::SimdPartialOrd, i32x8, u32x8},
+};
 
 const NUM_ROBOTS: usize = 500;
 const NUM_ROBOTS_PAD8: usize = 504;
@@ -158,8 +163,21 @@ fn lut_lookup(vpat: i32, hpat: i32) -> u32 {
 }
 
 #[inline]
-fn any_ge<const N: usize>(data: &[u32; N], target: u32) -> bool {
-    data.iter().find(|&&x| x >= target).is_some()
+unsafe fn any_ge<const N: usize>(data: &[u32; N], target: u32) -> bool {
+    let cmp = u32x8::splat(target);
+
+    for i in 0..N / 8 {
+        let vec = u32x8::from_array(
+            *data
+                .get_unchecked(i * 8..i * 8 + 8)
+                .as_array()
+                .unwrap_unchecked(),
+        );
+        if vec.simd_ge(cmp).any() {
+            return true;
+        }
+    }
+    return false;
 }
 
 #[inline]
