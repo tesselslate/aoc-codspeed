@@ -89,7 +89,7 @@ unsafe fn inner_p1(input: &str) -> u32 {
                 b'.' => robot = pos,
                 b'#' => (),
                 b'O' => {
-                    let mut box_pos = pos;
+                    let mut box_pos = pos.offset(offset);
 
                     loop {
                         if *box_pos == b'.' {
@@ -143,7 +143,7 @@ unsafe fn inner_p1(input: &str) -> u32 {
 
 #[inline]
 unsafe fn push_h(pos: *mut u8, offset: isize) -> bool {
-    let mut box_pos = pos.offset(offset);
+    let mut box_pos = pos.offset(offset * 2);
 
     loop {
         if *box_pos == 0 {
