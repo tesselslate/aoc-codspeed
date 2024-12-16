@@ -196,7 +196,7 @@ unsafe fn inner_p2(input: &str) -> u32 {
     let simd_zero = u8x16::splat(0);
 
     for r in 0..50 {
-        for c in (0..48).step_by(16) {
+        for c in (0..64).step_by(16) {
             let src = u8x16::from_array(
                 *input
                     .as_bytes()
@@ -222,23 +222,6 @@ unsafe fn inner_p2(input: &str) -> u32 {
                     .get_unchecked_mut(r * 128 + c * 2 + 16..r * 128 + c * 2 + 32)
                     .as_mut_ptr() as *mut u8,
             );
-        }
-
-        for c in 48..50 {
-            match *input.as_bytes().get_unchecked(r * 51 + c) {
-                b'#' => {
-                    grid.0[r * 128 + c * 2].write(b'#');
-                    grid.0[r * 128 + c * 2 + 1].write(b'#');
-                }
-                b'O' => {
-                    grid.0[r * 128 + c * 2].write(b'[');
-                    grid.0[r * 128 + c * 2 + 1].write(b']');
-                }
-                _ => {
-                    grid.0[r * 128 + c * 2].write(0);
-                    grid.0[r * 128 + c * 2 + 1].write(0);
-                }
-            }
         }
     }
 
