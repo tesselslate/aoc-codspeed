@@ -40,7 +40,7 @@ static mut DIST: [u32; GRID_SIZE] = [u32::MAX; GRID_SIZE];
 unsafe fn inner_p1(input: &[u8]) -> u32 {
     macro_rules! dijkstra_inner {
         ($entry: ident, $dir: ident, $DIST: ident, $PQ: ident, $input: ident) => {
-            if *$entry.loc.offset($dir) != b'#' && *$entry.loc.offset($dir * 2) != b'#' {
+            if *$entry.loc.offset($dir) != b'#' {
                 let cost = if $entry.dir == $dir as i32 { 2 } else { 1002 };
                 let dist_offset = $entry.loc.offset($dir * 2).sub_ptr($input.as_ptr());
                 if *$DIST.get_unchecked(dist_offset) > $entry.dist + cost {
