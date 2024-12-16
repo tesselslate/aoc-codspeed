@@ -107,29 +107,26 @@ unsafe fn push_v(scratch: *mut MaybeUninit<u8>, pos: *mut u8, offset: isize) -> 
     }
 
     unsafe fn check(scratch: *mut MaybeUninit<u8>, pos: *mut u8, offset: isize) -> bool {
-        if is_visited(scratch, pos, 1) {
-            return true;
-        }
-        mark_visited(scratch, pos, 1);
-
         match *pos {
             0 => true,
             b'#' => false,
             b']' => {
-                check(scratch, pos.sub(1), offset) && check(scratch, pos.offset(offset), offset)
+                check(scratch, pos.sub(1).offset(offset), offset)
+                    && check(scratch, pos.offset(offset), offset)
             }
             b'[' => {
-                check(scratch, pos.add(1), offset) && check(scratch, pos.offset(offset), offset)
+                check(scratch, pos.add(1).offset(offset), offset)
+                    && check(scratch, pos.offset(offset), offset)
             }
             _ => std::hint::unreachable_unchecked(),
         }
     }
 
     unsafe fn walk(scratch: *mut MaybeUninit<u8>, pos: *mut u8, offset: isize) {
-        if is_visited(scratch, pos, 2) {
+        if is_visited(scratch, pos, 1) {
             return;
         }
-        mark_visited(scratch, pos, 2);
+        mark_visited(scratch, pos, 1);
 
         match *pos {
             b']' => {
