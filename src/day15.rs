@@ -137,7 +137,7 @@ unsafe fn push_v(pos: *mut u8, offset: isize) -> bool {
     WALK_DATA.push(pos);
     let mut i = 0;
     while i < WALK_DATA.num_boxes {
-        let pos = WALK_DATA.boxes[i];
+        let pos = *WALK_DATA.boxes.get_unchecked(i);
         std::hint::assert_unchecked(*pos == b']' || *pos == b'[');
 
         if *pos == b']' {
