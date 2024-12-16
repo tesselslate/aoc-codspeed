@@ -1,6 +1,6 @@
 #![allow(static_mut_refs)]
 
-use std::simd::{cmp::SimdPartialEq, num::SimdUint, simd_swizzle, u32x8, u8x16, u8x32, u8x8, Mask};
+use std::simd::{cmp::SimdPartialEq, num::SimdUint, u32x8, u8x16, u8x8, Mask};
 
 const DIR_LINES: usize = 20;
 const DIR_LENGTH: usize = 1000;
@@ -17,22 +17,6 @@ const LUT1: [u32; 2560] = {
 
     values
 };
-
-// const LUT_SUM_P2: [u32; 128 * 50] = {
-//     let mut values = [0; 128 * 50];
-//
-//     let mut r = 0;
-//     while r < 50 {
-//         let mut c = 0;
-//         while c < 100 {
-//             values[(r * 128 + c) as usize] = r * 100 + c;
-//             c += 1;
-//         }
-//         r += 1;
-//     }
-//
-//     values
-// };
 
 #[repr(C)]
 struct WalkData {
