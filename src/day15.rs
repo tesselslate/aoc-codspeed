@@ -1,10 +1,6 @@
 #![allow(static_mut_refs)]
 
-use std::{
-    clone::CloneToUninit,
-    mem::MaybeUninit,
-    simd::{cmp::SimdPartialEq, u8x16},
-};
+use std::simd::{cmp::SimdPartialEq, u8x16};
 
 const DIR_LINES: usize = 20;
 const DIR_LENGTH: usize = 1000;
@@ -16,10 +12,15 @@ struct WalkData {
     boxes: [*mut u8; WALK_DATA_SZ],
 }
 
+#[repr(align(16))]
+struct Grid([u8; 128 * 50]);
+
 static mut WALK_DATA: WalkData = WalkData {
     num_boxes: 0,
     boxes: [std::ptr::null_mut(); WALK_DATA_SZ],
 };
+
+static mut GRID_2: Grid = Grid([0; 128 * 50]);
 
 impl WalkData {
     #[inline]
@@ -173,9 +174,6 @@ unsafe fn push_v(pos: *mut u8, offset: isize) -> bool {
 }
 
 unsafe fn inner_p2(input: &str) -> u32 {
-    #[repr(align(16))]
-    struct Grid([MaybeUninit<u8>; 128 * 50]);
-
     const OFFSETS: [isize; 256] = {
         let mut offsets = [0; 256];
 
@@ -186,8 +184,6 @@ unsafe fn inner_p2(input: &str) -> u32 {
 
         offsets
     };
-
-    let mut grid = Grid([MaybeUninit::<u8>::uninit(); 128 * 50]);
 
     let simd_box = u8x16::splat(b'O');
     let simd_wall = u8x16::splat(b'#');
@@ -212,21 +208,21 @@ unsafe fn inner_p2(input: &str) -> u32 {
             let right = wall_mask.select(simd_wall, box_mask.select(simd_rbox, simd_zero));
             let (left, right) = left.interleave(right);
 
-            left.clone_to_uninit(
-                grid.0
-                    .get_unchecked_mut(r * 128 + c * 2..r * 128 + c * 2 + 16)
-                    .as_mut_ptr() as *mut u8,
+            left.copy_to_slice(
+                GRID_2
+                    .0
+                    .get_unchecked_mut(r * 128 + c * 2..r * 128 + c * 2 + 16),
             );
-            right.clone_to_uninit(
-                grid.0
-                    .get_unchecked_mut(r * 128 + c * 2 + 16..r * 128 + c * 2 + 32)
-                    .as_mut_ptr() as *mut u8,
+            right.copy_to_slice(
+                GRID_2
+                    .0
+                    .get_unchecked_mut(r * 128 + c * 2 + 16..r * 128 + c * 2 + 32),
             );
         }
     }
 
     let mut dir = input.as_bytes().as_ptr().add(2551);
-    let mut robot = grid.0.as_mut_ptr().add(24 * 128 + 48) as *mut u8;
+    let mut robot = GRID_2.0.as_mut_ptr().add(24 * 128 + 48) as *mut u8;
 
     for _ in 0..DIR_LINES {
         for _ in 0..DIR_LENGTH {
@@ -257,7 +253,7 @@ unsafe fn inner_p2(input: &str) -> u32 {
     let mut sum = 0;
     for r in 0..50 {
         for c in 0..100 {
-            if (*grid.0.get_unchecked(r * 128 + c)).assume_init() == b'[' {
+            if *GRID_2.0.get_unchecked(r * 128 + c) == b'[' {
                 sum += r * 100 + c;
             }
         }
