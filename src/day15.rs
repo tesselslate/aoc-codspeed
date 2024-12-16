@@ -55,6 +55,7 @@ unsafe fn inner_p1(input: &str) -> u32 {
 
     let mut sum = 0;
     for i in 0..2550 {
+        // TODO: SIMD and/or LUT
         if *grid.get_unchecked(i) == b'O' {
             sum += (i / 51) * 100 + (i % 51)
         }
@@ -63,7 +64,7 @@ unsafe fn inner_p1(input: &str) -> u32 {
 }
 
 #[inline]
-unsafe fn push_h(pos: *mut u8, offset: isize, dir: u8) -> bool {
+unsafe fn push_h(pos: *mut u8, offset: isize) -> bool {
     let mut box_pos = pos.offset(offset);
 
     loop {
@@ -76,11 +77,9 @@ unsafe fn push_h(pos: *mut u8, offset: isize, dir: u8) -> bool {
         }
     }
 
-    if dir == b'<' {
-        std::ptr::copy(box_pos.add(1), box_pos, pos.sub_ptr(box_pos));
-    } else {
-        std::hint::assert_unchecked(dir == b'>');
-        std::ptr::copy(pos, pos.add(1), box_pos.sub_ptr(pos));
+    while pos != box_pos {
+        *box_pos = *box_pos.offset(-offset);
+        box_pos = box_pos.offset(-offset);
     }
 
     *pos = 0;
@@ -215,7 +214,7 @@ unsafe fn inner_p2(input: &str) -> u32 {
                 b'#' => (),
                 b'[' | b']' => {
                     if *dir == b'<' || *dir == b'>' {
-                        if push_h(pos, offset, *dir) {
+                        if push_h(pos, offset) {
                             robot = pos;
                         }
                     } else {
