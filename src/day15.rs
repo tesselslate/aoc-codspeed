@@ -1,5 +1,7 @@
 #![allow(static_mut_refs)]
 
+use std::simd::{cmp::SimdPartialEq, u8x16};
+
 const DIR_LINES: usize = 20;
 const DIR_LENGTH: usize = 1000;
 
@@ -184,8 +186,35 @@ unsafe fn inner_p2(input: &str) -> u32 {
     };
 
     let mut grid = [0; 5000];
+
+    let simd_box = u8x16::splat(b'O');
+    let simd_wall = u8x16::splat(b'#');
+    let simd_lbox = u8x16::splat(b'[');
+    let simd_rbox = u8x16::splat(b']');
+    let simd_zero = u8x16::splat(0);
+
     for r in 0..50 {
-        for c in 0..50 {
+        for c in (0..48).step_by(16) {
+            let src = u8x16::from_array(
+                *input
+                    .as_bytes()
+                    .get_unchecked(r * 51 + c..r * 51 + c + 16)
+                    .as_array()
+                    .unwrap_unchecked(),
+            );
+
+            let box_mask = src.simd_eq(simd_box);
+            let wall_mask = src.simd_eq(simd_wall);
+
+            let left = wall_mask.select(simd_wall, box_mask.select(simd_lbox, simd_zero));
+            let right = wall_mask.select(simd_wall, box_mask.select(simd_rbox, simd_zero));
+            let (left, right) = left.interleave(right);
+
+            left.copy_to_slice(grid.get_unchecked_mut(r * 100 + c * 2..r * 100 + c * 2 + 16));
+            right.copy_to_slice(grid.get_unchecked_mut(r * 100 + c * 2 + 16..r * 100 + c * 2 + 32));
+        }
+
+        for c in 48..50 {
             match *input.as_bytes().get_unchecked(r * 51 + c) {
                 b'#' => {
                     grid[r * 100 + c * 2] = b'#';
