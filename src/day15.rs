@@ -171,22 +171,6 @@ unsafe fn push_v(pos: *mut u8, offset: isize) -> bool {
     true
 }
 
-unsafe fn debug_grid(grid: *const u8, robot: *const u8) {
-    for r in 0..50 {
-        for c in 0..100 {
-            if grid.add(r * 100 + c) == robot {
-                print!("@");
-            } else if *grid.add(r * 100 + c) != 0 {
-                print!("{}", *grid.add(r * 100 + c) as char);
-            } else {
-                print!(".");
-            }
-        }
-        println!();
-    }
-    println!("\n\n\n");
-}
-
 unsafe fn inner_p2(input: &str) -> u32 {
     const OFFSETS: [isize; 256] = {
         let mut offsets = [0; 256];
