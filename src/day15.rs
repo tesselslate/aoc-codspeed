@@ -62,12 +62,191 @@ unsafe fn inner_p1(input: &str) -> u32 {
     sum as u32
 }
 
+#[inline]
+unsafe fn push_h(pos: *mut u8, offset: isize, dir: u8) -> bool {
+    let mut box_pos = pos.offset(offset);
+
+    loop {
+        if *box_pos == 0 {
+            break;
+        } else if *box_pos == b'#' {
+            return false;
+        } else {
+            box_pos = box_pos.offset(offset);
+        }
+    }
+
+    if dir == b'<' {
+        std::ptr::copy(box_pos.add(1), box_pos, pos.sub_ptr(box_pos));
+    } else {
+        std::hint::assert_unchecked(dir == b'>');
+        std::ptr::copy(pos, pos.add(1), box_pos.sub_ptr(pos));
+    }
+
+    *pos = 0;
+
+    true
+}
+
+#[inline]
+unsafe fn push_v(scratch: *mut u8, pos: *mut u8, offset: isize) -> bool {
+    #[inline]
+    unsafe fn is_visited(scratch: *mut u8, pos: *mut u8, val: u8) -> bool {
+        *scratch.add(scratch.sub_ptr(pos)) == val
+    }
+
+    #[inline]
+    unsafe fn mark_visited(scratch: *mut u8, pos: *mut u8, val: u8) {
+        *scratch.add(scratch.sub_ptr(pos)) = val;
+    }
+
+    #[inline]
+    unsafe fn clear_visited(scratch: *mut u8) {
+        std::ptr::write_bytes(scratch, 0, 5000);
+    }
+
+    unsafe fn check(scratch: *mut u8, pos: *mut u8, offset: isize) -> bool {
+        if is_visited(scratch, pos, 1) {
+            return true;
+        }
+        mark_visited(scratch, pos, 1);
+
+        match *pos {
+            0 => true,
+            b'#' => false,
+            b']' => {
+                check(scratch, pos.sub(1), offset) && check(scratch, pos.offset(offset), offset)
+            }
+            b'[' => {
+                check(scratch, pos.add(1), offset) && check(scratch, pos.offset(offset), offset)
+            }
+            _ => std::hint::unreachable_unchecked(),
+        }
+    }
+
+    unsafe fn walk(scratch: *mut u8, pos: *mut u8, offset: isize) {
+        if is_visited(scratch, pos, 2) {
+            return;
+        }
+        mark_visited(scratch, pos, 2);
+
+        match *pos {
+            b']' => {
+                walk(scratch, pos.offset(offset), offset);
+                walk(scratch, pos.sub(1), offset);
+                *pos.offset(offset) = b']';
+                *pos = 0;
+            }
+            b'[' => {
+                walk(scratch, pos.offset(offset), offset);
+                walk(scratch, pos.add(1), offset);
+                *pos.offset(offset) = b'[';
+                *pos = 0;
+            }
+            _ => (),
+        }
+    }
+
+    clear_visited(scratch);
+    if !check(scratch, pos, offset) {
+        false
+    } else {
+        walk(scratch, pos, offset);
+        true
+    }
+}
+
+unsafe fn debug_grid(grid: *const u8, robot: *const u8) {
+    for r in 0..50 {
+        for c in 0..100 {
+            if grid.add(r * 100 + c) == robot {
+                print!("@");
+            } else if *grid.add(r * 100 + c) != 0 {
+                print!("{}", *grid.add(r * 100 + c) as char);
+            } else {
+                print!(".");
+            }
+        }
+        println!();
+    }
+    println!("\n\n\n");
+}
+
+unsafe fn inner_p2(input: &str) -> u32 {
+    const OFFSETS: [isize; 256] = {
+        let mut offsets = [0; 256];
+
+        offsets[b'<' as usize] = -1;
+        offsets[b'>' as usize] = 1;
+        offsets[b'^' as usize] = -100;
+        offsets[b'v' as usize] = 100;
+
+        offsets
+    };
+
+    let mut grid = [0; 10000];
+    for r in 0..50 {
+        for c in 0..50 {
+            match *input.as_bytes().get_unchecked(r * 51 + c) {
+                b'#' => {
+                    grid[r * 100 + c * 2] = b'#';
+                    grid[r * 100 + c * 2 + 1] = b'#';
+                }
+                b'O' => {
+                    grid[r * 100 + c * 2] = b'[';
+                    grid[r * 100 + c * 2 + 1] = b']';
+                }
+                _ => (),
+            }
+        }
+    }
+
+    let mut dir = input.as_bytes().as_ptr().add(2551);
+    let mut robot = grid.as_mut_ptr().add(24 * 100 + 48);
+    let scratch = grid.as_mut_ptr().add(5000);
+
+    for _ in 0..DIR_LINES {
+        for _ in 0..DIR_LENGTH {
+            let offset = OFFSETS[*dir as usize];
+            let pos = robot.offset(offset);
+
+            match *pos {
+                0 => robot = pos,
+                b'#' => (),
+                b'[' | b']' => {
+                    if *dir == b'<' || *dir == b'>' {
+                        if push_h(pos, offset, *dir) {
+                            robot = pos;
+                        }
+                    } else {
+                        if push_v(scratch, pos, offset) {
+                            robot = pos;
+                        }
+                    }
+                }
+                _ => std::hint::unreachable_unchecked(),
+            }
+
+            dir = dir.add(1);
+        }
+        dir = dir.add(1);
+    }
+
+    let mut sum = 0;
+    for i in 0..5000 {
+        if *grid.get_unchecked(i) == b'[' {
+            sum += i;
+        }
+    }
+    sum as u32
+}
+
 pub fn part1(input: &str) -> u32 {
     unsafe { inner_p1(input) }
 }
 
 pub fn part2(input: &str) -> u32 {
-    0
+    unsafe { inner_p2(input) }
 }
 
 #[cfg(test)]
