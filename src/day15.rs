@@ -1,3 +1,5 @@
+use std::mem::MaybeUninit;
+
 const DIR_LINES: usize = 20;
 const DIR_LENGTH: usize = 1000;
 
@@ -183,22 +185,27 @@ unsafe fn inner_p2(input: &str) -> u32 {
         offsets
     };
 
-    let mut grid = [0; 10000];
+    let mut grid = [MaybeUninit::<u8>::uninit(); 10000];
     for r in 0..50 {
         for c in 0..50 {
             match *input.as_bytes().get_unchecked(r * 51 + c) {
                 b'#' => {
-                    grid[r * 100 + c * 2] = b'#';
-                    grid[r * 100 + c * 2 + 1] = b'#';
+                    grid[r * 100 + c * 2].write(b'#');
+                    grid[r * 100 + c * 2 + 1].write(b'#');
                 }
                 b'O' => {
-                    grid[r * 100 + c * 2] = b'[';
-                    grid[r * 100 + c * 2 + 1] = b']';
+                    grid[r * 100 + c * 2].write(b'[');
+                    grid[r * 100 + c * 2 + 1].write(b']');
                 }
-                _ => (),
+                _ => {
+                    grid[r * 100 + c * 2].write(0);
+                    grid[r * 100 + c * 2 + 1].write(0);
+                }
             }
         }
     }
+
+    let mut grid: [u8; 10000] = std::mem::transmute(grid);
 
     let mut dir = input.as_bytes().as_ptr().add(2551);
     let mut robot = grid.as_mut_ptr().add(24 * 100 + 48);
