@@ -233,7 +233,7 @@ unsafe fn inner_p2(input: &str) -> u32 {
                 0 => robot = pos,
                 b'#' => (),
                 b'[' | b']' => {
-                    if *dir == b'<' || *dir == b'>' {
+                    if *dir < 64 {
                         if push_h(pos, offset) {
                             robot = pos;
                         }
