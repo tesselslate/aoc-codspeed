@@ -8,15 +8,17 @@ use std::{
 
 const DIR_LINES: usize = 20;
 const DIR_LENGTH: usize = 1000;
+const WALK_DATA_SZ: usize = 63;
 
+#[repr(C)]
 struct WalkData {
-    boxes: [*mut u8; 64],
     num_boxes: usize,
+    boxes: [*mut u8; WALK_DATA_SZ],
 }
 
 static mut WALK_DATA: WalkData = WalkData {
-    boxes: [std::ptr::null_mut(); 64],
     num_boxes: 0,
+    boxes: [std::ptr::null_mut(); WALK_DATA_SZ],
 };
 
 impl WalkData {
@@ -27,7 +29,7 @@ impl WalkData {
 
     #[inline]
     pub unsafe fn push(&mut self, pos: *mut u8) {
-        std::hint::assert_unchecked(self.num_boxes < 64);
+        std::hint::assert_unchecked(self.num_boxes < WALK_DATA_SZ);
 
         *self.boxes.get_unchecked_mut(self.num_boxes) = pos;
         self.num_boxes += 1;
@@ -148,21 +150,14 @@ unsafe fn push_v(pos: *mut u8, offset: isize) -> bool {
 
         if *pos == b']' {
             WALK_DATA.push_only(pos.sub(1));
-
-            if *pos.offset(offset) > 64 {
-                WALK_DATA.push(pos.offset(offset));
-            } else if *pos.offset(offset) == b'#' {
-                return false;
-            }
         } else {
-            std::hint::assert_unchecked(*pos == b'[');
             WALK_DATA.push_only(pos.add(1));
+        }
 
-            if *pos.offset(offset) > 64 {
-                WALK_DATA.push(pos.offset(offset));
-            } else if *pos.offset(offset) == b'#' {
-                return false;
-            }
+        if *pos.offset(offset) > 64 {
+            WALK_DATA.push(pos.offset(offset));
+        } else if *pos.offset(offset) == b'#' {
+            return false;
         }
 
         i += 1;
@@ -179,7 +174,7 @@ unsafe fn push_v(pos: *mut u8, offset: isize) -> bool {
 
 unsafe fn inner_p2(input: &str) -> u32 {
     #[repr(align(16))]
-    struct Grid([MaybeUninit::<u8>; 128 * 50]);
+    struct Grid([MaybeUninit<u8>; 128 * 50]);
 
     const OFFSETS: [isize; 256] = {
         let mut offsets = [0; 256];
@@ -218,11 +213,13 @@ unsafe fn inner_p2(input: &str) -> u32 {
             let (left, right) = left.interleave(right);
 
             left.clone_to_uninit(
-                grid.0.get_unchecked_mut(r * 128 + c * 2..r * 128 + c * 2 + 16)
+                grid.0
+                    .get_unchecked_mut(r * 128 + c * 2..r * 128 + c * 2 + 16)
                     .as_mut_ptr() as *mut u8,
             );
             right.clone_to_uninit(
-                grid.0.get_unchecked_mut(r * 128 + c * 2 + 16..r * 128 + c * 2 + 32)
+                grid.0
+                    .get_unchecked_mut(r * 128 + c * 2 + 16..r * 128 + c * 2 + 32)
                     .as_mut_ptr() as *mut u8,
             );
         }
@@ -269,7 +266,6 @@ unsafe fn inner_p2(input: &str) -> u32 {
                 }
                 _ => std::hint::unreachable_unchecked(),
             }
-
             dir = dir.add(1);
         }
         dir = dir.add(1);
