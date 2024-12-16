@@ -1,7 +1,37 @@
-use std::mem::MaybeUninit;
+#![allow(static_mut_refs)]
 
 const DIR_LINES: usize = 20;
 const DIR_LENGTH: usize = 1000;
+
+struct WalkData {
+    boxes: [*mut u8; 64],
+    num_boxes: usize,
+}
+
+static mut WALK_DATA: WalkData = WalkData {
+    boxes: [std::ptr::null_mut(); 64],
+    num_boxes: 0,
+};
+
+impl WalkData {
+    #[inline]
+    pub fn clear(&mut self) {
+        self.num_boxes = 0;
+    }
+
+    #[inline]
+    pub unsafe fn push(&mut self, pos: *mut u8) {
+        std::hint::assert_unchecked(self.num_boxes < 64);
+
+        self.boxes[self.num_boxes] = pos;
+        self.num_boxes += 1;
+    }
+
+    #[inline]
+    pub unsafe fn walked(&self, pos: *mut u8) -> bool {
+        self.boxes[..self.num_boxes].contains(&pos)
+    }
+}
 
 unsafe fn inner_p1(input: &str) -> u32 {
     const OFFSETS: [isize; 256] = {
@@ -90,54 +120,33 @@ unsafe fn push_h(pos: *mut u8, offset: isize) -> bool {
 }
 
 #[inline]
-unsafe fn push_v(scratch: *mut MaybeUninit<u8>, pos: *mut u8, offset: isize) -> bool {
-    #[inline]
-    unsafe fn is_visited(scratch: *mut MaybeUninit<u8>, pos: *mut u8, val: u8) -> bool {
-        (*scratch.add(scratch.sub_ptr(pos as *mut MaybeUninit<u8>))).assume_init() == val
-    }
-
-    #[inline]
-    unsafe fn mark_visited(scratch: *mut MaybeUninit<u8>, pos: *mut u8, val: u8) {
-        (*scratch.add(scratch.sub_ptr(pos as *mut MaybeUninit<u8>))).write(val);
-    }
-
-    #[inline]
-    unsafe fn clear_visited(scratch: *mut MaybeUninit<u8>) {
-        std::ptr::write_bytes(scratch, 0, 5000);
-    }
-
-    unsafe fn check(scratch: *mut MaybeUninit<u8>, pos: *mut u8, offset: isize) -> bool {
+unsafe fn push_v(pos: *mut u8, offset: isize) -> bool {
+    unsafe fn check(pos: *mut u8, offset: isize) -> bool {
         match *pos {
             0 => true,
             b'#' => false,
-            b']' => {
-                check(scratch, pos.sub(1).offset(offset), offset)
-                    && check(scratch, pos.offset(offset), offset)
-            }
-            b'[' => {
-                check(scratch, pos.add(1).offset(offset), offset)
-                    && check(scratch, pos.offset(offset), offset)
-            }
+            b']' => check(pos.sub(1).offset(offset), offset) && check(pos.offset(offset), offset),
+            b'[' => check(pos.add(1).offset(offset), offset) && check(pos.offset(offset), offset),
             _ => std::hint::unreachable_unchecked(),
         }
     }
 
-    unsafe fn walk(scratch: *mut MaybeUninit<u8>, pos: *mut u8, offset: isize) {
-        if is_visited(scratch, pos, 1) {
+    unsafe fn walk(pos: *mut u8, offset: isize) {
+        if WALK_DATA.walked(pos) {
             return;
         }
-        mark_visited(scratch, pos, 1);
+        WALK_DATA.push(pos);
 
         match *pos {
             b']' => {
-                walk(scratch, pos.offset(offset), offset);
-                walk(scratch, pos.sub(1), offset);
+                walk(pos.offset(offset), offset);
+                walk(pos.sub(1), offset);
                 *pos.offset(offset) = b']';
                 *pos = 0;
             }
             b'[' => {
-                walk(scratch, pos.offset(offset), offset);
-                walk(scratch, pos.add(1), offset);
+                walk(pos.offset(offset), offset);
+                walk(pos.add(1), offset);
                 *pos.offset(offset) = b'[';
                 *pos = 0;
             }
@@ -150,11 +159,12 @@ unsafe fn push_v(scratch: *mut MaybeUninit<u8>, pos: *mut u8, offset: isize) -> 
         return false;
     }
 
-    clear_visited(scratch);
-    if !check(scratch, pos, offset) {
+    WALK_DATA.clear();
+
+    if !check(pos, offset) {
         false
     } else {
-        walk(scratch, pos, offset);
+        walk(pos, offset);
         true
     }
 }
@@ -176,18 +186,6 @@ unsafe fn debug_grid(grid: *const u8, robot: *const u8) {
 }
 
 unsafe fn inner_p2(input: &str) -> u32 {
-    #[repr(C)]
-    struct StorageUninit {
-        grid: [MaybeUninit<u8>; 5000],
-        scratch: [MaybeUninit<u8>; 5000],
-    }
-
-    #[repr(C)]
-    struct Storage {
-        grid: [u8; 5000],
-        scratch: [MaybeUninit<u8>; 5000],
-    }
-
     const OFFSETS: [isize; 256] = {
         let mut offsets = [0; 256];
 
@@ -199,32 +197,28 @@ unsafe fn inner_p2(input: &str) -> u32 {
         offsets
     };
 
-    let mut storage = StorageUninit {
-        grid: [MaybeUninit::uninit(); 5000],
-        scratch: [MaybeUninit::uninit(); 5000],
-    };
+    let mut grid = [0; 5000];
     for r in 0..50 {
         for c in 0..50 {
             match *input.as_bytes().get_unchecked(r * 51 + c) {
                 b'#' => {
-                    storage.grid[r * 100 + c * 2].write(b'#');
-                    storage.grid[r * 100 + c * 2 + 1].write(b'#');
+                    grid[r * 100 + c * 2] = b'#';
+                    grid[r * 100 + c * 2 + 1] = b'#';
                 }
                 b'O' => {
-                    storage.grid[r * 100 + c * 2].write(b'[');
-                    storage.grid[r * 100 + c * 2 + 1].write(b']');
+                    grid[r * 100 + c * 2] = b'[';
+                    grid[r * 100 + c * 2 + 1] = b']';
                 }
                 _ => {
-                    storage.grid[r * 100 + c * 2].write(0);
-                    storage.grid[r * 100 + c * 2 + 1].write(0);
+                    grid[r * 100 + c * 2] = 0;
+                    grid[r * 100 + c * 2 + 1] = 0;
                 }
             }
         }
     }
 
-    let mut storage: Storage = std::mem::transmute(storage);
     let mut dir = input.as_bytes().as_ptr().add(2551);
-    let mut robot = storage.grid.as_mut_ptr().add(24 * 100 + 48);
+    let mut robot = grid.as_mut_ptr().add(24 * 100 + 48);
 
     for _ in 0..DIR_LINES {
         for _ in 0..DIR_LENGTH {
@@ -240,7 +234,7 @@ unsafe fn inner_p2(input: &str) -> u32 {
                             robot = pos;
                         }
                     } else {
-                        if push_v(storage.scratch.as_mut_ptr(), pos, offset) {
+                        if push_v(pos, offset) {
                             robot = pos;
                         }
                     }
@@ -255,7 +249,7 @@ unsafe fn inner_p2(input: &str) -> u32 {
 
     let mut sum = 0;
     for i in 0..5000 {
-        if *storage.grid.get_unchecked(i) == b'[' {
+        if *grid.get_unchecked(i) == b'[' {
             sum += i;
         }
     }
