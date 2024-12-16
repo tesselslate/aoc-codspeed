@@ -1,10 +1,38 @@
 #![allow(static_mut_refs)]
 
-use std::simd::{cmp::SimdPartialEq, u8x16};
+use std::simd::{cmp::SimdPartialEq, num::SimdUint, simd_swizzle, u32x8, u8x16, u8x32, u8x8, Mask};
 
 const DIR_LINES: usize = 20;
 const DIR_LENGTH: usize = 1000;
 const WALK_DATA_SZ: usize = 63;
+
+const LUT1: [u32; 2560] = {
+    let mut values = [0; 2560];
+
+    let mut i = 0u32;
+    while i < 2560 {
+        values[i as usize] = (i / 51) * 100 + (i % 51);
+        i += 1;
+    }
+
+    values
+};
+
+// const LUT_SUM_P2: [u32; 128 * 50] = {
+//     let mut values = [0; 128 * 50];
+//
+//     let mut r = 0;
+//     while r < 50 {
+//         let mut c = 0;
+//         while c < 100 {
+//             values[(r * 128 + c) as usize] = r * 100 + c;
+//             c += 1;
+//         }
+//         r += 1;
+//     }
+//
+//     values
+// };
 
 #[repr(C)]
 struct WalkData {
@@ -61,8 +89,8 @@ unsafe fn inner_p1(input: &str) -> u32 {
         offsets
     };
 
-    let mut grid = [0; 2550];
-    grid.copy_from_slice(input.as_bytes().get_unchecked(..2550));
+    let mut grid = [0; 2560];
+    grid[..2550].copy_from_slice(input.as_bytes().get_unchecked(..2550));
     let mut dir = input.as_bytes().as_ptr().add(2551);
 
     let mut robot = grid.as_mut_ptr().add(24 * 51 + 24);
@@ -102,11 +130,29 @@ unsafe fn inner_p1(input: &str) -> u32 {
     }
 
     let mut sum = 0;
-    for i in 0..2550 {
-        // TODO: SIMD and/or LUT
-        if *grid.get_unchecked(i) == b'O' {
-            sum += (i / 51) * 100 + (i % 51)
-        }
+
+    let simd_box = u8x8::splat(b'O');
+    let simd_zero = u32x8::splat(0);
+
+    for i in 0..2560 / 32 {
+        let d1 = u8x8::from_array(*grid[i * 32..i * 32 + 8].as_array().unwrap_unchecked());
+        let v1 = u32x8::from_array(*LUT1[i * 32..i * 32 + 8].as_array().unwrap_unchecked());
+        let d2 = u8x8::from_array(*grid[i * 32 + 8..i * 32 + 16].as_array().unwrap_unchecked());
+        let v2 = u32x8::from_array(*LUT1[i * 32 + 8..i * 32 + 16].as_array().unwrap_unchecked());
+        let d3 = u8x8::from_array(*grid[i * 32 + 16..i * 32 + 24].as_array().unwrap_unchecked());
+        let v3 = u32x8::from_array(*LUT1[i * 32 + 16..i * 32 + 24].as_array().unwrap_unchecked());
+        let d4 = u8x8::from_array(*grid[i * 32 + 24..i * 32 + 32].as_array().unwrap_unchecked());
+        let v4 = u32x8::from_array(*LUT1[i * 32 + 24..i * 32 + 32].as_array().unwrap_unchecked());
+
+        let b1: Mask<i32, 8> = d1.simd_eq(simd_box).into();
+        let b2: Mask<i32, 8> = d2.simd_eq(simd_box).into();
+        let b3: Mask<i32, 8> = d3.simd_eq(simd_box).into();
+        let b4: Mask<i32, 8> = d4.simd_eq(simd_box).into();
+
+        sum += b1.select(v1, simd_zero).reduce_sum();
+        sum += b2.select(v2, simd_zero).reduce_sum();
+        sum += b3.select(v3, simd_zero).reduce_sum();
+        sum += b4.select(v4, simd_zero).reduce_sum();
     }
     sum as u32
 }
