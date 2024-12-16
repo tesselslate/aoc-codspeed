@@ -148,6 +148,11 @@ unsafe fn push_v(scratch: *mut MaybeUninit<u8>, pos: *mut u8, offset: isize) -> 
         }
     }
 
+    // fast-path
+    if *pos.offset(offset) == b'#' {
+        return false;
+    }
+
     clear_visited(scratch);
     if !check(scratch, pos, offset) {
         false
