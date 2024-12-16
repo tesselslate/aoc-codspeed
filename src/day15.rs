@@ -23,13 +23,20 @@ impl WalkData {
     pub unsafe fn push(&mut self, pos: *mut u8) {
         std::hint::assert_unchecked(self.num_boxes < 64);
 
-        self.boxes[self.num_boxes] = pos;
+        *self.boxes.get_unchecked_mut(self.num_boxes) = pos;
         self.num_boxes += 1;
     }
 
     #[inline]
+    pub unsafe fn push_only(&mut self, pos: *mut u8) {
+        if !self.walked(pos) {
+            self.push(pos);
+        }
+    }
+
+    #[inline]
     pub unsafe fn walked(&self, pos: *mut u8) -> bool {
-        self.boxes[..self.num_boxes].contains(&pos)
+        self.boxes.get_unchecked(..self.num_boxes).contains(&pos)
     }
 }
 
@@ -121,52 +128,44 @@ unsafe fn push_h(pos: *mut u8, offset: isize) -> bool {
 
 #[inline]
 unsafe fn push_v(pos: *mut u8, offset: isize) -> bool {
-    unsafe fn check(pos: *mut u8, offset: isize) -> bool {
-        match *pos {
-            0 => true,
-            b'#' => false,
-            b']' => check(pos.sub(1).offset(offset), offset) && check(pos.offset(offset), offset),
-            b'[' => check(pos.add(1).offset(offset), offset) && check(pos.offset(offset), offset),
-            _ => std::hint::unreachable_unchecked(),
-        }
-    }
-
-    unsafe fn walk(pos: *mut u8, offset: isize) {
-        if WALK_DATA.walked(pos) {
-            return;
-        }
-        WALK_DATA.push(pos);
-
-        match *pos {
-            b']' => {
-                walk(pos.offset(offset), offset);
-                walk(pos.sub(1), offset);
-                *pos.offset(offset) = b']';
-                *pos = 0;
-            }
-            b'[' => {
-                walk(pos.offset(offset), offset);
-                walk(pos.add(1), offset);
-                *pos.offset(offset) = b'[';
-                *pos = 0;
-            }
-            _ => (),
-        }
-    }
-
     // fast-path
     if *pos.offset(offset) == b'#' {
         return false;
     }
 
     WALK_DATA.clear();
+    WALK_DATA.push(pos);
+    let mut i = 0;
+    while i < WALK_DATA.num_boxes {
+        let pos = WALK_DATA.boxes[i];
+        std::hint::assert_unchecked(*pos == b']' || *pos == b'[');
 
-    if !check(pos, offset) {
-        false
-    } else {
-        walk(pos, offset);
-        true
+        if *pos == b']' {
+            if *pos.offset(offset) > 64 {
+                WALK_DATA.push_only(pos.offset(offset));
+            } else if *pos.offset(offset) == b'#' {
+                return false;
+            }
+            WALK_DATA.push_only(pos.sub(1));
+        } else {
+            if *pos.offset(offset) > 64 {
+                WALK_DATA.push_only(pos.offset(offset));
+            } else if *pos.offset(offset) == b'#' {
+                return false;
+            }
+            WALK_DATA.push_only(pos.add(1));
+        }
+
+        i += 1;
     }
+
+    for i in (0..WALK_DATA.num_boxes).rev() {
+        let pos = *WALK_DATA.boxes.get_unchecked(i);
+        *pos.offset(offset) = *pos;
+        *pos = 0;
+    }
+
+    true
 }
 
 unsafe fn debug_grid(grid: *const u8, robot: *const u8) {
