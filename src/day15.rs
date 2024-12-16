@@ -141,19 +141,22 @@ unsafe fn push_v(pos: *mut u8, offset: isize) -> bool {
         std::hint::assert_unchecked(*pos == b']' || *pos == b'[');
 
         if *pos == b']' {
-            if *pos.offset(offset) > 64 {
-                WALK_DATA.push_only(pos.offset(offset));
-            } else if *pos.offset(offset) == b'#' {
-                return false;
-            }
             WALK_DATA.push_only(pos.sub(1));
-        } else {
+
             if *pos.offset(offset) > 64 {
-                WALK_DATA.push_only(pos.offset(offset));
+                WALK_DATA.push(pos.offset(offset));
             } else if *pos.offset(offset) == b'#' {
                 return false;
             }
+        } else {
+            std::hint::assert_unchecked(*pos == b'[');
             WALK_DATA.push_only(pos.add(1));
+
+            if *pos.offset(offset) > 64 {
+                WALK_DATA.push(pos.offset(offset));
+            } else if *pos.offset(offset) == b'#' {
+                return false;
+            }
         }
 
         i += 1;
