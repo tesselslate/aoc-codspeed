@@ -4,7 +4,7 @@ use std::simd::{cmp::SimdPartialEq, num::SimdUint, u32x8, u8x16, u8x8, Mask};
 
 const DIR_LINES: usize = 20;
 const DIR_LENGTH: usize = 1000;
-const WALK_DATA_SZ: usize = 63;
+const WALK_DATA_SZ: usize = 511;
 
 const LUT1: [u32; 2560] = {
     let mut values = [0; 2560];
