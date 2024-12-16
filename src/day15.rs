@@ -1,4 +1,8 @@
-use std::mem::MaybeUninit;
+use std::{
+    mem::MaybeUninit,
+    ops::AddAssign,
+    simd::{cmp::SimdPartialEq, num::SimdUint, u32x8, u8x8, Mask},
+};
 
 const DIR_LINES: usize = 20;
 const DIR_LENGTH: usize = 1000;
@@ -57,7 +61,6 @@ unsafe fn inner_p1(input: &str) -> u32 {
 
     let mut sum = 0;
     for i in 0..2550 {
-        // TODO: SIMD and/or LUT
         if *grid.get_unchecked(i) == b'O' {
             sum += (i / 51) * 100 + (i % 51)
         }
@@ -252,10 +255,24 @@ unsafe fn inner_p2(input: &str) -> u32 {
     }
 
     let mut sum = 0;
-    for i in 0..5000 {
-        if *storage.grid.get_unchecked(i) == b'[' {
-            sum += i;
-        }
+
+    let mut values = u32x8::from_array([0, 1, 2, 3, 4, 5, 6, 7]);
+    let zero = u32x8::splat(0);
+    let eight = u32x8::splat(8);
+    let box_mask = u8x8::splat(b'[');
+    for i in 0..5000 / 8 {
+        let boxes: Mask<i32, 8> = u8x8::from_array(
+            *storage
+                .grid
+                .get_unchecked(i * 8..i * 8 + 8)
+                .as_array()
+                .unwrap_unchecked(),
+        )
+        .simd_eq(box_mask)
+        .into();
+
+        sum += boxes.select(values, zero).reduce_sum();
+        values.add_assign(eight);
     }
     sum as u32
 }
