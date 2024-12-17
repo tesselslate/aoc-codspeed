@@ -65,9 +65,6 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
     });
 
     while let Some(entry) = PQ.pop() {
-        if *DIST.get_unchecked(entry.loc.sub_ptr(input.as_ptr())) < entry.dist {
-            continue;
-        }
         if entry.loc == input.as_ptr().add(END_OFFSET as usize) {
             return entry.dist;
         }
