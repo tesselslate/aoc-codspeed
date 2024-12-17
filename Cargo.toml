@@ -68,6 +68,10 @@ harness = false
 name = "day16"
 harness = false
 
+[[bench]]
+name = "day17"
+harness = false
+
 # binaries
 
 [[bin]]
