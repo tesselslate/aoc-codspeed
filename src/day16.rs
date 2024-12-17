@@ -115,11 +115,10 @@ impl Queue {
     }
 }
 
-static mut PQ: Queue = Queue::new();
-
-static mut DIST: [u32; GRID_SIZE] = [u32::MAX; GRID_SIZE];
-
 unsafe fn inner_p1(input: &[u8]) -> u32 {
+    static mut PQ: Queue = Queue::new();
+    static mut DIST: [u32; GRID_SIZE] = [u32::MAX; GRID_SIZE];
+
     macro_rules! dijkstra_inner {
         ($entry: ident, $dir: ident, $DIST: ident, $PQ: ident, $input: ident) => {
             if *$entry.loc.offset($dir) != b'#' {
