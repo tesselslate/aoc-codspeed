@@ -2,7 +2,7 @@
 
 use std::{
     ops::{Add, BitAnd, BitXor, Mul, Shr, Sub},
-    simd::{cmp::SimdPartialEq, num::SimdUint, simd_swizzle, u32x8, u8x16, u8x4, u8x8},
+    simd::{cmp::SimdPartialEq, num::SimdUint, u32x8, u8x16, u8x8},
 };
 
 const LUT_RAW: &[u8] = include_bytes!("../lut/day17.bin");
@@ -86,7 +86,7 @@ unsafe fn inner_p1(input: &[u8]) -> &'static str {
 }
 
 unsafe fn inner_p2(input: &[u8]) -> u64 {
-    let bxl_1 = (*input.as_ptr().add(PROG_BXL1_OFFSET) - b'0') as usize;
+    let bxl_1 = (*input.as_ptr().add(PROG_BXL1_OFFSET) - b'0') as u32;
 
     // we only need to find the operand for B ^= x in the loop, everything else
     // is constant
@@ -101,23 +101,46 @@ unsafe fn inner_p2(input: &[u8]) -> u64 {
     let bxl_mask = prog.simd_eq(bxl_mask);
     let bxl_loc = bxl_mask.first_set().unwrap_unchecked();
 
-    let bxl_2 = (*input.as_ptr().add(PROG_BODY_OFFSET).add(bxl_loc).add(2) - b'0') as usize;
+    let bxl_2 = (*input.as_ptr().add(PROG_BODY_OFFSET).add(bxl_loc).add(2) - b'0') as u32;
 
     let bxc_mask = u8x16::from_array([b'4', 0, 0, 0, b'4', 0, 0, 0, b'4', 0, 0, 0, b'4', 0, 0, 0]);
     let bxc_mask = prog.simd_eq(bxc_mask);
     let bxc_loc = bxc_mask.first_set().unwrap_unchecked();
 
-    let bxc_operand = (*input.as_ptr().add(PROG_BODY_OFFSET).add(bxc_loc).add(2) - b'0') as usize;
+    let bxc_operand = (*input.as_ptr().add(PROG_BODY_OFFSET).add(bxc_loc).add(2) - b'0') as u32;
 
-    let body_ops: u8x16 = simd_swizzle!(prog, [0, 4, 8, 12, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        .sub(u8x16::splat(b'0'));
-    let ord = body_ops
-        .mul(u8x16::from_array([
-            0, 1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]))
-        .reduce_sum() as usize;
+    // orders
+    // [0, 1, 4, 5], // 0145
+    // [0, 4, 1, 5], // 0415
+    // [1, 0, 4, 5], // 1045
+    // [1, 4, 0, 5], // 1405
+    // [1, 4, 5, 0], // 1450
+    // [4, 0, 1, 5], // 4015
+    // [4, 1, 0, 5], // 4105
+    // [4, 1, 5, 0], // 4150
+    let body_ops = [
+        *input.as_ptr().add(PROG_BODY_OFFSET) - b'0',
+        *input.as_ptr().add(PROG_BODY_OFFSET).add(4) - b'0',
+        *input.as_ptr().add(PROG_BODY_OFFSET).add(8) - b'0',
+        *input.as_ptr().add(PROG_BODY_OFFSET).add(12) - b'0',
+    ];
 
-    let index = ord * 512 + bxl_1 * 64 + bxl_2 * 8 + bxc_operand;
+    let ord = match body_ops {
+        [0, 1, 4, 5] => 0,
+        [0, 4, 1, 5] => 1,
+        [1, 0, 4, 5] => 2,
+        [1, 4, 0, 5] => 3,
+        [1, 4, 5, 0] => 4,
+        [4, 0, 1, 5] => 5,
+        [4, 1, 0, 5] => 6,
+        [4, 1, 5, 0] => 7,
+        _ => std::hint::unreachable_unchecked(),
+    };
+
+    let index = (bxl_1 as usize) * 512
+        + (ord as usize) * 64
+        + (bxl_2 as usize) * 8
+        + (bxc_operand as usize);
 
     u64::from_ne_bytes(
         LUT_RAW

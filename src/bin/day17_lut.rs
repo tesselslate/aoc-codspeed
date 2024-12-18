@@ -106,39 +106,23 @@ fn generate(out: &mut Vec<u64>) {
         [4, 1, 5, 0], // 4150
     ];
 
-    const ORDER_IDS: [usize; 8] = [24, 21, 23, 19, 14, 17, 16, 11];
-
-    for i in 0..=24 {
-        if !ORDER_IDS.contains(&i) {
-            out.extend(vec![0; 512]);
-            continue;
-        }
-
-        out.extend(generate_ord(
-            ORDERS[ORDER_IDS.iter().position(|&x| x == i).unwrap()],
-        ));
-    }
-}
-
-fn generate_ord(ord: [u8; 4]) -> Vec<u64> {
-    let mut out = Vec::new();
-
     for bxl_1 in 0..8 {
-        for bxl_2 in 0..8 {
-            for bxc_op in 0..8 {
-                let ord_operand: [u8; 4] = std::array::from_fn(|i| {
-                    let opcode = ord[i];
+        for ord in ORDERS {
+            for bxl_2 in 0..8 {
+                for bxc_op in 0..8 {
+                    let ord_operand: [u8; 4] = std::array::from_fn(|i| {
+                        let opcode = ord[i];
 
-                    match opcode {
-                        0 => 3,
-                        5 => 5,
-                        1 => bxl_2,
-                        4 => bxc_op,
-                        _ => unreachable!(),
-                    }
-                });
+                        match opcode {
+                            0 => 3,
+                            5 => 5,
+                            1 => bxl_2,
+                            4 => bxc_op,
+                            _ => unreachable!(),
+                        }
+                    });
 
-                #[rustfmt::skip]
+                    #[rustfmt::skip]
                     let program = [
                         2, 4,
                         1, bxl_1,
@@ -150,16 +134,15 @@ fn generate_ord(ord: [u8; 4]) -> Vec<u64> {
                         3, 0,
                     ];
 
-                let ans = dfs(program, 0, 0).unwrap_or(0);
-                if ans != 0 {
-                    println!("{:?} {}", program, ans);
+                    let ans = dfs(program, 0, 0).unwrap_or(0);
+                    if ans != 0 {
+                        println!("{:?} {}", program, ans);
+                    }
+                    out.push(ans);
                 }
-                out.push(ans);
             }
         }
     }
-
-    out
 }
 
 fn main() -> io::Result<()> {
@@ -171,7 +154,7 @@ fn main() -> io::Result<()> {
     let mut f = File::create(&dst)?;
 
     let (_, bytes, _) = unsafe { results.align_to::<u8>() };
-    assert_eq!(bytes.len(), 25 * 512 * 8);
+    assert_eq!(bytes.len(), 4096 * 8);
 
     f.write(bytes)?;
 
