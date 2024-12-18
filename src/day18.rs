@@ -50,7 +50,7 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
     QUEUE.push((gridptr.add(73), 0));
 
     let mut i = 0;
-    while i < QUEUE.len() {
+    loop {
         let (loc, dist) = *QUEUE.get_unchecked(i);
 
         for offset in [1, -1, 72, -72] {
@@ -67,8 +67,6 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
 
         i += 1;
     }
-
-    std::hint::unreachable_unchecked()
 }
 
 unsafe fn inner_p2(input: &[u8]) -> &'static str {
