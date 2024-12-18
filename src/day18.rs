@@ -3,14 +3,23 @@
 use arrayvec::ArrayVec;
 
 const QUEUE_SIZE: usize = 5120;
-const GRID_DIM: usize = 71;
-const GRID_SIZE: usize = GRID_DIM * GRID_DIM;
+const GRID_SIZE: usize = 72 * 73;
 
 unsafe fn inner_p1(input: &[u8]) -> u64 {
-    static mut QUEUE: ArrayVec<(i32, i32, u64), QUEUE_SIZE> = ArrayVec::new_const();
+    static mut QUEUE: ArrayVec<(*mut u8, u64), QUEUE_SIZE> = ArrayVec::new_const();
     static mut GRID: [u8; GRID_SIZE] = [0; GRID_SIZE];
 
+    // clear
     GRID.iter_mut().for_each(|x| *x = 0);
+
+    // bottom and top rows
+    std::ptr::write_bytes(GRID.as_mut_ptr(), 1, 72);
+    std::ptr::write_bytes(GRID.as_mut_ptr().add(72 * 72), 1, 72);
+
+    for i in 1..72 {
+        GRID[i * 72] = 1;
+    }
+
     let mut input = input.as_ptr();
 
     for _ in 0..1024 {
@@ -32,29 +41,27 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
             input = input.add(3);
         }
 
-        *GRID.get_unchecked_mut(x * GRID_DIM + y) = 1;
+        *GRID.get_unchecked_mut(y * 72 + x + 73) = 1;
     }
 
+    let gridptr = GRID.as_mut_ptr();
+
     QUEUE.clear();
-    QUEUE.push((0, 0, 0));
+    QUEUE.push((gridptr.add(73), 0));
 
     let mut i = 0;
     while i < QUEUE.len() {
-        let (x, y, dist) = *QUEUE.get_unchecked(i);
+        let (loc, dist) = *QUEUE.get_unchecked(i);
 
-        for offset in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
-            let (nx, ny) = (x + offset.0, y + offset.1);
-            if nx < 0 || ny < 0 || nx == GRID_DIM as i32 || ny == GRID_DIM as i32 {
-                continue;
-            }
-
-            if *GRID.get_unchecked(nx as usize * GRID_DIM + ny as usize) == 0 {
-                if nx == GRID_DIM as i32 - 1 && ny == GRID_DIM as i32 - 1 {
+        for offset in [1, -1, 72, -72] {
+            let nloc = loc.offset(offset);
+            if *nloc == 0 {
+                if nloc == gridptr.add(72 * 72 - 1) {
                     return dist + 1;
                 }
 
-                QUEUE.push((nx, ny, dist + 1));
-                *GRID.get_unchecked_mut(nx as usize * GRID_DIM + ny as usize) = 1;
+                QUEUE.push((nloc, dist + 1));
+                *nloc = 1;
             }
         }
 
