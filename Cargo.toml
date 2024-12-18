@@ -110,6 +110,11 @@ path = "src/bin/day16.rs"
 bench = false
 
 [[bin]]
+name = "day17"
+path = "src/bin/day17.rs"
+bench = false
+
+[[bin]]
 name = "day11_lut"
 path = "src/bin/day11_lut.rs"
 bench = false
