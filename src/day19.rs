@@ -1,9 +1,6 @@
 #![allow(static_mut_refs)]
 
-use std::collections::HashSet;
-
 use arrayvec::ArrayVec;
-use rustc_hash::FxSeededState;
 
 const NUM_PATTERNS: usize = 400;
 
@@ -28,11 +25,8 @@ impl UnsafeSlice {
 
 unsafe fn inner_p1(input: &[u8]) -> u32 {
     static mut TOWELS: ArrayVec<UnsafeSlice, 16384> = ArrayVec::new_const();
-    static mut CACHE: HashSet<*const u8, FxSeededState> =
-        HashSet::with_hasher(FxSeededState::with_seed(9587345));
 
     TOWELS.clear();
-    CACHE.clear();
 
     let mut input = input.as_ptr();
 
@@ -56,26 +50,27 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         input = input.add(2);
     }
 
-    unsafe fn dfs(start: *const u8) -> *const u8 {
-        if *start == b'\n' {
-            return start;
+    unsafe fn dfs(cache: *mut u64, start: *const u8, target: *const u8) -> *const u8 {
+        if *target == b'\n' {
+            return target;
         }
 
-        if CACHE.contains(&start) {
+        let cache_idx = target.sub_ptr(start);
+        if (*cache & (1 << cache_idx)) != 0 {
             return std::ptr::null();
         }
 
         for towel in &TOWELS {
-            let next = towel.matches(start);
+            let next = towel.matches(target);
             if !next.is_null() {
-                let ptr = dfs(next);
+                let ptr = dfs(cache, start, next);
                 if !ptr.is_null() {
                     return ptr;
                 }
             }
         }
 
-        CACHE.insert(start);
+        *cache |= 1 << cache_idx;
         std::ptr::null()
     }
 
@@ -84,8 +79,11 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
     input = input.add(2);
     for _ in 0..NUM_PATTERNS {
         debug_assert!(*input != b'\n');
+
         let start = input;
-        let next = dfs(start);
+        let mut cache = 0u64;
+        let next = dfs(std::ptr::from_mut(&mut cache), start, start);
+
         if !next.is_null() {
             valid += 1;
             input = next.add(1);
