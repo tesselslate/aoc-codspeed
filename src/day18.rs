@@ -47,7 +47,7 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
     let gridptr = GRID.as_mut_ptr();
 
     QUEUE.clear();
-    QUEUE.push((gridptr.add(73), 0));
+    QUEUE.push_unchecked((gridptr.add(73), 0));
 
     let mut i = 0;
     loop {
@@ -60,7 +60,7 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
                     return dist + 1;
                 }
 
-                QUEUE.push((nloc, dist + 1));
+                QUEUE.push_unchecked((nloc, dist + 1));
                 *nloc = 1;
             }
         }
