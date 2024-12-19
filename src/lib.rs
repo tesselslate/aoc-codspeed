@@ -4,6 +4,7 @@
 #![feature(portable_simd)]
 #![feature(ptr_sub_ptr)]
 #![feature(slice_as_array)]
+#![feature(str_from_raw_parts)]
 
 extern crate aoc_runner;
 
