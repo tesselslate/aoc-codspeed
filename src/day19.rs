@@ -2,7 +2,7 @@
 
 const NUM_PATTERNS: usize = 400;
 const TRIE_TERMINAL: usize = 1;
-const TRIE_SIZE: usize = 6;
+const TRIE_SIZE: usize = 7;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct UnsafeSlice {
@@ -11,9 +11,8 @@ struct UnsafeSlice {
 }
 
 #[inline]
-#[target_feature(enable = "popcnt")]
 unsafe fn phf(x: u8) -> usize {
-    (x.count_ones() as u8 - (x & 0b10) - 1) as usize
+    ((x & 0x7) ^ (x >> 4)) as usize
 }
 
 struct Trie {
@@ -138,11 +137,12 @@ unsafe fn dfs_p2(trie: &Trie, cache: &mut [u64; 64], start: *const u8, mut offse
         if char == b'\n' {
             debug_assert!(cache[cache_idx] == u64::MAX);
 
-            let value = if *trie.data.get_unchecked(trie_node as usize + TRIE_SIZE - 1) == TRIE_TERMINAL {
-                sum + 1
-            } else {
-                sum
-            };
+            let value =
+                if *trie.data.get_unchecked(trie_node as usize + TRIE_SIZE - 1) == TRIE_TERMINAL {
+                    sum + 1
+                } else {
+                    sum
+                };
 
             cache[cache_idx] = value;
             return value;
