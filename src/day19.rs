@@ -123,15 +123,57 @@ unsafe fn dfs_p1(trie: &Trie, cache: *mut u64, start: *const u8, mut offset: usi
     }
 }
 
+unsafe fn dfs_p2(trie: &Trie, cache: &mut [u64; 64], start: *const u8, mut offset: usize) -> u64 {
+    let cache_idx = offset;
+    if cache[cache_idx] != u64::MAX {
+        return cache[cache_idx];
+    }
+
+    let mut sum = 0;
+    let mut trie_node = 0;
+    loop {
+        let char = *start.add(offset);
+        if char == b'\n' {
+            debug_assert!(cache[cache_idx] == u64::MAX);
+
+            let value = if *trie.data.get_unchecked(trie_node as usize + 5) == 0 {
+                sum + 1
+            } else {
+                sum
+            };
+
+            cache[cache_idx] = value;
+            return value;
+        }
+
+        let idx = trie_node + phf(char);
+        let next = *trie.data.get_unchecked(idx);
+
+        if next < 0 {
+            debug_assert!(cache[cache_idx] == u64::MAX);
+
+            cache[cache_idx] = sum;
+            return sum;
+        }
+
+        if *trie.data.get_unchecked(next as usize + 5) == 0 {
+            sum += dfs_p2(trie, cache, start, offset + 1);
+        }
+
+        trie_node = next as usize;
+        offset += 1;
+    }
+}
+
 unsafe fn inner_p1(input: &[u8]) -> u32 {
     static mut TOWELS: Trie = Trie::new();
 
     let mut input = input.as_ptr();
     input = parse_towels(input, &mut TOWELS);
+    input = input.add(2);
 
     let mut valid = 0;
 
-    input = input.add(2);
     for _ in 0..NUM_PATTERNS {
         let mut cache = 0u64;
         let next = dfs_p1(&TOWELS, std::ptr::from_mut(&mut cache), input, 0);
@@ -151,12 +193,34 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
     valid
 }
 
+unsafe fn inner_p2(input: &[u8]) -> u64 {
+    static mut TOWELS: Trie = Trie::new();
+
+    let mut input = input.as_ptr();
+    input = parse_towels(input, &mut TOWELS);
+    input = input.add(2);
+
+    let mut valid = 0;
+
+    for _ in 0..NUM_PATTERNS {
+        let mut cache = [u64::MAX; 64];
+        valid += dfs_p2(&TOWELS, &mut cache, input, 0);
+
+        while *input != b'\n' {
+            input = input.add(1);
+        }
+        input = input.add(1);
+    }
+
+    valid
+}
+
 pub fn part1(input: &str) -> u32 {
     unsafe { inner_p1(input.as_bytes()) }
 }
 
 pub fn part2(input: &str) -> u64 {
-    0
+    unsafe { inner_p2(input.as_bytes()) }
 }
 
 #[cfg(test)]
