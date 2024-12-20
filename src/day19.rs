@@ -61,89 +61,82 @@ impl Trie {
     }
 }
 
-unsafe fn inner_p1(input: &[u8]) -> u32 {
-    static mut TOWELS: Trie = Trie::new();
+#[inline]
+unsafe fn parse_towels(mut input: *const u8, trie: &mut Trie) -> *const u8 {
+    trie.clear();
 
-    TOWELS.clear();
-
-    let mut input = input.as_ptr();
-
-    'outer: loop {
+    loop {
         let start = input;
         while *input != b',' {
             input = input.add(1);
             if *input == b'\n' {
-                TOWELS.insert(UnsafeSlice {
+                trie.insert(UnsafeSlice {
                     data: start,
                     len: input.sub_ptr(start),
                 });
-                break 'outer;
+                return input;
             }
         }
 
-        TOWELS.insert(UnsafeSlice {
+        trie.insert(UnsafeSlice {
             data: start,
             len: input.sub_ptr(start),
         });
         input = input.add(2);
     }
+}
 
-    debug_assert!(TOWELS.data[5] == -1);
-    debug_assert!(phf(b'b') == 0);
-    debug_assert!(phf(b'r') == 1);
-    debug_assert!(phf(b'g') == 2);
-    debug_assert!(phf(b'w') == 3);
-    debug_assert!(phf(b'u') == 4);
+unsafe fn dfs_p1(trie: &Trie, cache: *mut u64, start: *const u8, mut offset: usize) -> usize {
+    let cache_idx = offset;
+    if (*cache & (1 << cache_idx)) != 0 {
+        return 0;
+    }
 
-    unsafe fn dfs(trie: &Trie, cache: *mut u64, start: *const u8, mut offset: usize) -> usize {
-        let cache_idx = offset;
-        if (*cache & (1 << cache_idx)) != 0 {
+    let mut trie_node = 0;
+    loop {
+        let char = *start.add(offset);
+        if char == b'\n' {
+            if *trie.data.get_unchecked(trie_node + 5) == 0 {
+                return offset;
+            } else {
+                return 0;
+            }
+        }
+
+        let idx = trie_node + phf(char);
+        let next = *trie.data.get_unchecked(idx);
+
+        if next < 0 {
+            *cache |= 1 << cache_idx;
             return 0;
         }
 
-        let mut trie_node = 0;
-        loop {
-            let char = *start.add(offset);
-            if char == b'\n' {
-                if *trie.data.get_unchecked(trie_node + 5) == 0 {
-                    return offset;
-                } else {
-                    return 0;
-                }
+        if *trie.data.get_unchecked(next as usize + 5) == 0 {
+            let ret = dfs_p1(trie, cache, start, offset + 1);
+            if ret > 0 {
+                return ret;
             }
-            debug_assert!(b"bwrug".contains(&char));
-
-            let idx = trie_node + phf(char);
-            let next = *trie.data.get_unchecked(idx);
-
-            if next < 0 {
-                *cache |= 1 << cache_idx;
-                return 0;
-            }
-
-            if *trie.data.get_unchecked(next as usize + 5) == 0 {
-                let ret = dfs(trie, cache, start, offset + 1);
-                if ret > 0 {
-                    return ret;
-                }
-            }
-
-            trie_node = next as usize;
-            offset += 1;
         }
+
+        trie_node = next as usize;
+        offset += 1;
     }
+}
+
+unsafe fn inner_p1(input: &[u8]) -> u32 {
+    static mut TOWELS: Trie = Trie::new();
+
+    let mut input = input.as_ptr();
+    input = parse_towels(input, &mut TOWELS);
 
     let mut valid = 0;
 
     input = input.add(2);
     for _ in 0..NUM_PATTERNS {
-        debug_assert!(*input != b'\n');
-
         let mut cache = 0u64;
-        let next = dfs(&TOWELS, std::ptr::from_mut(&mut cache), input, 0);
+        let next = dfs_p1(&TOWELS, std::ptr::from_mut(&mut cache), input, 0);
 
         if next > 0 {
-            debug_assert!(*input.add(next) == b'\n');
             input = input.add(next + 1);
 
             valid += 1;
