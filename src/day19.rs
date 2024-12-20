@@ -4,12 +4,6 @@ const NUM_PATTERNS: usize = 400;
 const TRIE_TERMINAL: usize = 1;
 const TRIE_SIZE: usize = 7;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-struct UnsafeSlice {
-    data: *const u8,
-    len: usize,
-}
-
 #[inline]
 unsafe fn phf(x: u8) -> usize {
     ((x & 0x7) ^ (x >> 4)) as usize
@@ -35,11 +29,11 @@ impl Trie {
     }
 
     #[inline]
-    pub unsafe fn insert(&mut self, pattern: UnsafeSlice) {
+    pub unsafe fn insert(&mut self, mut pattern: *const u8) -> *const u8 {
         let mut node_index = 0;
 
-        for i in 0..pattern.len {
-            let char = *pattern.data.add(i);
+        while *pattern > 64 {
+            let char = *pattern;
             let idx = node_index + phf(char);
             let next = *self.data.get_unchecked(idx);
 
@@ -56,9 +50,12 @@ impl Trie {
 
                 self.free += TRIE_SIZE;
             }
+
+            pattern = pattern.add(1);
         }
 
         *self.data.get_unchecked_mut(node_index + TRIE_SIZE - 1) = 1;
+        pattern
     }
 }
 
@@ -67,22 +64,10 @@ unsafe fn parse_towels(mut input: *const u8, trie: &mut Trie) -> *const u8 {
     trie.clear();
 
     loop {
-        let start = input;
-        while *input != b',' {
-            input = input.add(1);
-            if *input == b'\n' {
-                trie.insert(UnsafeSlice {
-                    data: start,
-                    len: input.sub_ptr(start),
-                });
-                return input;
-            }
+        input = trie.insert(input);
+        if *input == b'\n' {
+            return input;
         }
-
-        trie.insert(UnsafeSlice {
-            data: start,
-            len: input.sub_ptr(start),
-        });
         input = input.add(2);
     }
 }
