@@ -2,6 +2,7 @@
 
 const NUM_PATTERNS: usize = 400;
 const TRIE_TERMINAL: usize = 1;
+const TRIE_SIZE: usize = 6;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct UnsafeSlice {
@@ -23,15 +24,15 @@ struct Trie {
 impl Trie {
     pub const fn new() -> Self {
         Self {
-            free: 6,
+            free: TRIE_SIZE,
             data: [0; 16384],
         }
     }
 
     #[inline]
     pub fn clear(&mut self) {
-        self.free = 6;
-        self.data[0..6].iter_mut().for_each(|x| *x = 0);
+        self.free = TRIE_SIZE;
+        self.data[0..TRIE_SIZE].iter_mut().for_each(|x| *x = 0);
     }
 
     #[inline]
@@ -50,15 +51,15 @@ impl Trie {
                 node_index = self.free;
 
                 self.data
-                    .get_unchecked_mut(self.free..self.free + 6)
+                    .get_unchecked_mut(self.free..self.free + TRIE_SIZE)
                     .iter_mut()
                     .for_each(|x| *x = 0);
 
-                self.free += 6;
+                self.free += TRIE_SIZE;
             }
         }
 
-        *self.data.get_unchecked_mut(node_index + 5) = 1;
+        *self.data.get_unchecked_mut(node_index + TRIE_SIZE - 1) = 1;
     }
 }
 
@@ -97,7 +98,7 @@ unsafe fn dfs_p1(trie: &Trie, cache: *mut u64, start: *const u8, mut offset: usi
     loop {
         let char = *start.add(offset);
         if char == b'\n' {
-            if *trie.data.get_unchecked(trie_node + 5) == TRIE_TERMINAL {
+            if *trie.data.get_unchecked(trie_node + TRIE_SIZE - 1) == TRIE_TERMINAL {
                 return offset;
             } else {
                 return 0;
@@ -112,7 +113,7 @@ unsafe fn dfs_p1(trie: &Trie, cache: *mut u64, start: *const u8, mut offset: usi
             return 0;
         }
 
-        if *trie.data.get_unchecked(next as usize + 5) == TRIE_TERMINAL {
+        if *trie.data.get_unchecked(next as usize + TRIE_SIZE - 1) == TRIE_TERMINAL {
             let ret = dfs_p1(trie, cache, start, offset + 1);
             if ret > 0 {
                 return ret;
@@ -137,7 +138,7 @@ unsafe fn dfs_p2(trie: &Trie, cache: &mut [u64; 64], start: *const u8, mut offse
         if char == b'\n' {
             debug_assert!(cache[cache_idx] == u64::MAX);
 
-            let value = if *trie.data.get_unchecked(trie_node as usize + 5) == TRIE_TERMINAL {
+            let value = if *trie.data.get_unchecked(trie_node as usize + TRIE_SIZE - 1) == TRIE_TERMINAL {
                 sum + 1
             } else {
                 sum
@@ -157,7 +158,7 @@ unsafe fn dfs_p2(trie: &Trie, cache: &mut [u64; 64], start: *const u8, mut offse
             return sum;
         }
 
-        if *trie.data.get_unchecked(next as usize + 5) == TRIE_TERMINAL {
+        if *trie.data.get_unchecked(next as usize + TRIE_SIZE - 1) == TRIE_TERMINAL {
             sum += dfs_p2(trie, cache, start, offset + 1);
         }
 
