@@ -160,3 +160,8 @@ bench = false
 name = "day21_lut"
 path = "src/bin/day21_lut.rs"
 bench = false
+
+[[bin]]
+name = "day22_lut"
+path = "src/bin/day22_lut.rs"
+bench = false
