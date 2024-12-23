@@ -1,5 +1,5 @@
 // shoutout incompleteusern
-const MAGIC_4: [[u32; 16]; 6] = const {
+const MAGIC_8: [[u32; 256]; 3] = const {
     let mut bits = [0u32; 24];
 
     let mut i = 0;
@@ -8,23 +8,35 @@ const MAGIC_4: [[u32; 16]; 6] = const {
         i += 1;
     }
 
-    let mut lut = [[0; 16]; 6];
+    let mut lut = [[0; 256]; 3];
 
     let mut i = 0;
-    while i < 6 {
+    while i < 3 {
         let mut j = 0;
-        while j < 16 {
+        while j < 256 {
             if (j & 1) != 0 {
-                lut[i][j] ^= bits[i * 4];
+                lut[i][j] ^= bits[i * 8];
             }
             if (j & 2) != 0 {
-                lut[i][j] ^= bits[i * 4 + 1];
+                lut[i][j] ^= bits[i * 8 + 1];
             }
             if (j & 4) != 0 {
-                lut[i][j] ^= bits[i * 4 + 2];
+                lut[i][j] ^= bits[i * 8 + 2];
             }
             if (j & 8) != 0 {
-                lut[i][j] ^= bits[i * 4 + 3];
+                lut[i][j] ^= bits[i * 8 + 3];
+            }
+            if (j & 16) != 0 {
+                lut[i][j] ^= bits[i * 8 + 4];
+            }
+            if (j & 32) != 0 {
+                lut[i][j] ^= bits[i * 8 + 5];
+            }
+            if (j & 64) != 0 {
+                lut[i][j] ^= bits[i * 8 + 6];
+            }
+            if (j & 128) != 0 {
+                lut[i][j] ^= bits[i * 8 + 7];
             }
             j += 1;
         }
@@ -54,10 +66,10 @@ const fn hash_2k(mut x: u32) -> u32 {
 unsafe fn skip_2k(x: u32) -> u32 {
     let mut s = 0;
 
-    for i in 0..6 {
-        s ^= MAGIC_4
+    for i in 0..3 {
+        s ^= MAGIC_8
             .get_unchecked(i)
-            .get_unchecked(((x >> (i * 4)) & 0xF) as usize);
+            .get_unchecked(((x >> (i * 8)) & 0xFF) as usize);
     }
 
     s
