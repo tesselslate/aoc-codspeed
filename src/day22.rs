@@ -131,7 +131,7 @@ unsafe fn inner_p2(input: &[u8]) -> i16 {
             secret = next;
         }
 
-        for _ in 0..1996 {
+        for _ in 0..1997 {
             *VALUE.get_unchecked_mut(seq_id as usize) += (secret.fast_mod(d10, 10) as i16)
                 * (*SEEN.get_unchecked(seq_id as usize) < secret_id) as i16;
             *SEEN.get_unchecked_mut(seq_id as usize) = secret_id;
