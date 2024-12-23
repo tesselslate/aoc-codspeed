@@ -81,14 +81,24 @@ unsafe fn skip_2k(x: u32) -> u32 {
 }
 
 #[inline(always)]
-unsafe fn parse_one(mut input: *const u8) -> (u32, *const u8) {
-    let mut acc = 0;
-    while *input != b'\n' {
-        acc = acc * 10 + (*input - b'0') as u32;
-        input = input.add(1);
-    }
+unsafe fn parse_one(input: *const u8) -> (u32, *const u8) {
+    let acc = (*input - b'0') as u32 * 100000
+        + (*input.add(1) - b'0') as u32 * 10000
+        + (*input.add(2) - b'0') as u32 * 1000
+        + (*input.add(3) - b'0') as u32 * 100
+        + (*input.add(4) - b'0') as u32 * 10
+        + (*input.add(5) - b'0') as u32;
 
-    (acc, input)
+    if *input.add(7) == b'\n' {
+        (acc * 10 + (*input.add(6) - b'0') as u32, input.add(7))
+    } else if *input.add(8) == b'\n' {
+        (
+            acc * 100 + (*input.add(6) - b'0') as u32 * 10 + (*input.add(7) - b'0') as u32,
+            input.add(8),
+        )
+    } else {
+        (acc, input.add(6))
+    }
 }
 
 unsafe fn inner_p1(input: &[u8]) -> u64 {
