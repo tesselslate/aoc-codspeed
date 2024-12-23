@@ -136,22 +136,13 @@ unsafe fn inner_p2(input: &[u8]) -> i16 {
     loop {
         let (mut secret, eol) = parse_one(input);
 
-        let a = hash(secret);
-        let b = hash(a);
-        let c = hash(b);
-        let d = hash(c);
+        let mut seq_id = 0u32;
+        for _ in 0..4 {
+            let next = hash(secret);
+            seq_id = seq_id * 19 + (9 + next.fast_mod(d10, 10) - secret.fast_mod(d10, 10));
 
-        let m1 = secret.fast_mod(d10, 10);
-        let m2 = a.fast_mod(d10, 10);
-        let m3 = b.fast_mod(d10, 10);
-        let m4 = c.fast_mod(d10, 10);
-        let m5 = d.fast_mod(d10, 10);
-
-        let mut seq_id = (19 * 19 * 19 * (9 + m2 - m1))
-            + (19 * 19 * (9 + m3 - m2))
-            + (19 * (9 + m4 - m3))
-            + (9 + m5 - m4);
-        secret = d;
+            secret = next;
+        }
 
         for _ in 0..1997 {
             *VALUE.get_unchecked_mut(seq_id as usize) += (secret.fast_mod(d10, 10) as i16)
