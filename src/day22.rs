@@ -101,6 +101,7 @@ unsafe fn parse_one(input: *const u8) -> (u32, *const u8) {
     }
 }
 
+#[repr(align(64))]
 unsafe fn inner_p1(input: &[u8]) -> u64 {
     let mut sum = 0;
 
@@ -119,6 +120,7 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
     }
 }
 
+#[repr(align(64))]
 unsafe fn inner_p2(input: &[u8]) -> i16 {
     let d10: PrecomputedDivU32 = 10u32.precompute_div();
     let d130321: PrecomputedDivU32 = 130321u32.precompute_div();
