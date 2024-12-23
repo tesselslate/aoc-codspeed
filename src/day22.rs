@@ -112,8 +112,6 @@ unsafe fn inner_p2(input: &[u8]) -> i16 {
     VALUE.iter_mut().for_each(|x| *x = 0);
     SEEN.iter_mut().for_each(|x| *x = 0);
 
-    let mut best = 0;
-
     let input_end = input.as_ptr_range().end.sub(1);
     let mut input = input.as_ptr();
 
@@ -134,11 +132,9 @@ unsafe fn inner_p2(input: &[u8]) -> i16 {
         }
 
         for _ in 0..1996 {
-            if *SEEN.get_unchecked(seq_id as usize) < secret_id {
-                *SEEN.get_unchecked_mut(seq_id as usize) = secret_id;
-                *VALUE.get_unchecked_mut(seq_id as usize) += secret.fast_mod(d10, 10) as i16;
-                best = i16::max(best, *VALUE.get_unchecked(seq_id as usize));
-            }
+            *VALUE.get_unchecked_mut(seq_id as usize) += (secret.fast_mod(d10, 10) as i16)
+                * (*SEEN.get_unchecked(seq_id as usize) < secret_id) as i16;
+            *SEEN.get_unchecked_mut(seq_id as usize) = secret_id;
 
             let next = hash(secret);
             seq_id = (seq_id * 19).fast_mod(d130321, 130321)
@@ -147,12 +143,14 @@ unsafe fn inner_p2(input: &[u8]) -> i16 {
         }
 
         if input == input_end {
-            return best;
+            break;
         }
 
         input = input.add(1);
         secret_id += 1;
     }
+
+    *VALUE.iter().max().unwrap_unchecked()
 }
 
 pub fn part1(input: &str) -> u64 {
