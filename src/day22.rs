@@ -87,43 +87,13 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
     let mut input = input.as_ptr();
 
     loop {
-        let secret;
-
-        if *input.add(6) == b'\n' {
-            secret = (*input - b'0') as u32 * 100000
-                + (*input.add(1) - b'0') as u32 * 10000
-                + (*input.add(2) - b'0') as u32 * 1000
-                + (*input.add(3) - b'0') as u32 * 100
-                + (*input.add(4) - b'0') as u32 * 10
-                + (*input.add(5) - b'0') as u32;
-
-            input = input.add(6);
-        } else if *input.add(7) == b'\n' {
-            secret = (*input - b'0') as u32 * 1000000
-                + (*input.add(1) - b'0') as u32 * 100000
-                + (*input.add(2) - b'0') as u32 * 10000
-                + (*input.add(3) - b'0') as u32 * 1000
-                + (*input.add(4) - b'0') as u32 * 100
-                + (*input.add(5) - b'0') as u32 * 10
-                + (*input.add(6) - b'0') as u32;
-
-            input = input.add(7);
-        } else if *input.add(8) == b'\n' {
-            secret = (*input - b'0') as u32 * 10000000
-                + (*input.add(1) - b'0') as u32 * 1000000
-                + (*input.add(2) - b'0') as u32 * 100000
-                + (*input.add(3) - b'0') as u32 * 10000
-                + (*input.add(4) - b'0') as u32 * 1000
-                + (*input.add(5) - b'0') as u32 * 100
-                + (*input.add(6) - b'0') as u32 * 10
-                + (*input.add(7) - b'0') as u32;
-
-            input = input.add(8);
-        } else {
-            std::hint::unreachable_unchecked();
+        let mut acc = 0;
+        while *input != b'\n' {
+            acc = acc * 10 + (*input - b'0') as u32;
+            input = input.add(1);
         }
 
-        sum += skip_2k(secret) as u64;
+        sum += skip_2k(acc) as u64;
         if input == input_end {
             return sum;
         }
