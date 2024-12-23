@@ -104,7 +104,6 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
 
 unsafe fn inner_p2(input: &[u8]) -> i16 {
     let d10: PrecomputedDivU32 = 10u32.precompute_div();
-    let d130321: PrecomputedDivU32 = 130321u32.precompute_div();
 
     static mut VALUE: [i16; SEQ_COUNT] = [0; SEQ_COUNT];
     static mut SEEN: [u16; SEQ_COUNT] = [0; SEQ_COUNT];
@@ -118,6 +117,7 @@ unsafe fn inner_p2(input: &[u8]) -> i16 {
     let mut input = input.as_ptr();
 
     let mut secret_id = 1;
+    let (mut a, mut b, mut c, mut d);
     loop {
         let mut secret = 0;
         while *input != b'\n' {
@@ -125,24 +125,38 @@ unsafe fn inner_p2(input: &[u8]) -> i16 {
             input = input.add(1);
         }
 
-        let mut seq_id = 0u32;
-        for _ in 0..4 {
-            let next = hash(secret);
-            seq_id = seq_id * 19 + (9 + next.fast_mod(d10, 10) - secret.fast_mod(d10, 10));
+        let next = hash(secret);
+        a = 9 + next.fast_mod(d10, 10) - secret.fast_mod(d10, 10);
+        secret = next;
 
-            secret = next;
-        }
+        let next = hash(secret);
+        b = 9 + next.fast_mod(d10, 10) - secret.fast_mod(d10, 10);
+        secret = next;
+
+        let next = hash(secret);
+        c = 9 + next.fast_mod(d10, 10) - secret.fast_mod(d10, 10);
+        secret = next;
+
+        let next = hash(secret);
+        d = 9 + next.fast_mod(d10, 10) - secret.fast_mod(d10, 10);
+        secret = next;
 
         for _ in 0..1996 {
-            if *SEEN.get_unchecked(seq_id as usize) < secret_id {
-                *SEEN.get_unchecked_mut(seq_id as usize) = secret_id;
-                *VALUE.get_unchecked_mut(seq_id as usize) += secret.fast_mod(d10, 10) as i16;
-                best = i16::max(best, *VALUE.get_unchecked(seq_id as usize));
+            let seq_id = (a * 19 * 19 * 19 + b * 19 * 19 + c * 19 + d) as usize;
+
+            if *SEEN.get_unchecked(seq_id) < secret_id {
+                *SEEN.get_unchecked_mut(seq_id) = secret_id;
+                *VALUE.get_unchecked_mut(seq_id) += secret.fast_mod(d10, 10) as i16;
+                best = i16::max(best, *VALUE.get_unchecked(seq_id));
             }
 
             let next = hash(secret);
-            seq_id = (seq_id * 19).fast_mod(d130321, 130321)
-                + (9 + next.fast_mod(d10, 10) - secret.fast_mod(d10, 10));
+            (a, b, c, d) = (
+                b,
+                c,
+                d,
+                9 + next.fast_mod(d10, 10) - secret.fast_mod(d10, 10),
+            );
             secret = next;
         }
 
