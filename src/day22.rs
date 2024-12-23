@@ -80,6 +80,17 @@ unsafe fn skip_2k(x: u32) -> u32 {
     s
 }
 
+#[inline(always)]
+unsafe fn parse_one(mut input: *const u8) -> (u32, *const u8) {
+    let mut acc = 0;
+    while *input != b'\n' {
+        acc = acc * 10 + (*input - b'0') as u32;
+        input = input.add(1);
+    }
+
+    (acc, input)
+}
+
 unsafe fn inner_p1(input: &[u8]) -> u64 {
     let mut sum = 0;
 
@@ -87,18 +98,14 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
     let mut input = input.as_ptr();
 
     loop {
-        let mut acc = 0;
-        while *input != b'\n' {
-            acc = acc * 10 + (*input - b'0') as u32;
-            input = input.add(1);
-        }
+        let (secret, eol) = parse_one(input);
 
-        sum += skip_2k(acc) as u64;
-        if input == input_end {
+        sum += skip_2k(secret) as u64;
+        if eol == input_end {
             return sum;
         }
 
-        input = input.add(1);
+        input = eol.add(1);
     }
 }
 
@@ -117,11 +124,7 @@ unsafe fn inner_p2(input: &[u8]) -> i16 {
 
     let mut secret_id = 1;
     loop {
-        let mut secret = 0;
-        while *input != b'\n' {
-            secret = secret * 10 + (*input - b'0') as u32;
-            input = input.add(1);
-        }
+        let (mut secret, eol) = parse_one(input);
 
         let mut seq_id = 0u32;
         for _ in 0..4 {
@@ -142,11 +145,11 @@ unsafe fn inner_p2(input: &[u8]) -> i16 {
             secret = next;
         }
 
-        if input == input_end {
+        if eol == input_end {
             break;
         }
 
-        input = input.add(1);
+        input = eol.add(1);
         secret_id += 1;
     }
 
