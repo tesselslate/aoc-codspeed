@@ -1,6 +1,9 @@
 #![allow(static_mut_refs)]
 
-use std::simd::{cmp::SimdPartialEq, u16x16};
+use std::{
+    ops::BitOr,
+    simd::{cmp::SimdPartialEq, u16x16},
+};
 
 use arrayvec::ArrayVec;
 
@@ -19,8 +22,13 @@ impl Graph {
 
     #[inline(always)]
     unsafe fn contains(&self, a: usize, b: u16) -> bool {
-        let edges = u16x16::from_array(*self.0.get_unchecked(a).as_array().unwrap_unchecked());
-        (edges.simd_eq(u16x16::splat(b)).to_bitmask() & 0x1fff) != 0
+        const MASK: u16x16 = u16x16::from_array([
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFFFF, 0xFFFF, 0xFFFF,
+        ]);
+
+        let edges =
+            u16x16::from_array(*self.0.get_unchecked(a).as_array().unwrap_unchecked()).bitor(MASK);
+        edges.simd_eq(u16x16::splat(b)).any()
     }
 
     #[inline(always)]
