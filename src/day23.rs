@@ -131,10 +131,10 @@ unsafe fn inner_p2(input: &[u8]) -> &'static str {
         }
 
         let mut clique: ArrayVec<u16, 13> = ArrayVec::new_const();
-        clique.push(i as u16);
+        clique.push_unchecked(i as u16);
         for i in 0..13 {
             if adjcounts[i].count_ones() == 11 {
-                clique.push(ids[i]);
+                clique.push_unchecked(ids[i]);
             }
         }
 
