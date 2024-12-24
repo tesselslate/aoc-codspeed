@@ -1,5 +1,7 @@
 #![allow(static_mut_refs)]
 
+use std::simd::{cmp::SimdPartialEq, u16x16};
+
 use fastdiv::FastDiv;
 
 #[inline(always)]
@@ -52,11 +54,13 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
                 let a = COMPUTERS.0[i][j] as usize;
                 let b = COMPUTERS.0[i][k] as u16;
 
-                if COMPUTERS.0[a][..13].contains(&b) {
+                let edges =
+                    u16x16::from_array(*COMPUTERS.0.get_unchecked(a).as_array().unwrap_unchecked());
+                if (edges.simd_eq(u16x16::splat(b)).to_bitmask() & 0x1fff) != 0 {
                     groups += 1;
 
-                    if (a as u32).fast_div(d26) == (b't' - b'a') as u32
-                        || (b as u32).fast_div(d26) == (b't' - b'a') as u32
+                    if (a as u32 - 1).fast_div(d26) == (b't' - b'a') as u32
+                        || (b as u32 - 1).fast_div(d26) == (b't' - b'a') as u32
                     {
                         dupes += 1;
                     }
