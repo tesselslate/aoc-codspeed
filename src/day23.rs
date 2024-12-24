@@ -16,9 +16,7 @@ impl Graph {
     }
 
     #[inline(always)]
-    unsafe fn read(&mut self, mut input: *const u8) {
-        let mut counts = [0u8; 26 * 26];
-
+    unsafe fn read(&mut self, counts: &mut [u8; 26 * 26], mut input: *const u8) {
         for _ in 0..3380 {
             let a = id(*input, *input.add(1));
             let b = id(*input.add(3), *input.add(4));
@@ -30,6 +28,9 @@ impl Graph {
             *counts.get_unchecked_mut(a) += 1;
             *counts.get_unchecked_mut(b) += 1;
         }
+
+        debug_assert!(counts.iter().filter(|&&x| x == 13).count() == 520);
+        debug_assert!(counts.iter().filter(|&&x| x == 0).count() == 26 * 26 - 520);
     }
 }
 
@@ -37,12 +38,19 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
     const T_START: usize = (b't' - b'a') as usize * 26;
 
     static mut COMPUTERS: Graph = Graph::new();
-    COMPUTERS.read(input.as_ptr());
+
+    let mut counts = [0; 26 * 26];
+    COMPUTERS.read(&mut counts, input.as_ptr());
 
     let mut groups = 0;
     let mut dupes = 0;
+    let mut triplets = 0;
 
     for i in T_START..T_START + 26 {
+        if counts[i] == 0 {
+            continue;
+        }
+
         for j in 1..13 {
             for k in 0..j {
                 let a = COMPUTERS.0[i][j] as usize;
@@ -53,19 +61,30 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
                 if (edges.simd_eq(u16x16::splat(b as u16)).to_bitmask() & 0x1fff) != 0 {
                     groups += 1;
 
-                    if (a >= T_START && a < T_START + 26) || (b >= T_START && b < T_START + 26) {
+                    let at = a >= T_START && a < T_START + 26;
+                    let bt = b >= T_START && b < T_START + 26;
+
+                    if at != bt {
                         dupes += 1;
+                    } else if at && bt {
+                        triplets += 1;
                     }
                 }
             }
         }
     }
 
-    groups - (dupes >> 1)
+    groups - (dupes / 2) - (triplets / 3) * 2
 }
 
 unsafe fn inner_p2(input: &[u8]) -> &'static str {
     static mut OUTBUF: [u8; 64] = [0; 64];
+    static mut COMPUTERS: Graph = Graph::new();
+
+    let mut counts = [0; 26 * 26];
+    COMPUTERS.read(&mut counts, input.as_ptr());
+
+    for i in 0..26 * 26 {}
 
     std::str::from_raw_parts(OUTBUF.as_ptr(), 0)
 }
