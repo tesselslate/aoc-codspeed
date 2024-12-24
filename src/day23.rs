@@ -2,6 +2,8 @@
 
 use std::simd::{cmp::SimdPartialEq, u16x16};
 
+use arrayvec::ArrayVec;
+
 #[inline(always)]
 fn id(a: u8, b: u8) -> usize {
     (a - b'a') as usize * 26 + (b - b'a') as usize
@@ -13,6 +15,12 @@ struct Graph([[u16; 16]; 26 * 26]);
 impl Graph {
     const fn new() -> Self {
         Self([[0; 16]; 26 * 26])
+    }
+
+    #[inline(always)]
+    unsafe fn contains(&self, a: usize, b: u16) -> bool {
+        let edges = u16x16::from_array(*self.0.get_unchecked(a).as_array().unwrap_unchecked());
+        (edges.simd_eq(u16x16::splat(b)).to_bitmask() & 0x1fff) != 0
     }
 
     #[inline(always)]
@@ -56,9 +64,7 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
                 let a = COMPUTERS.0[i][j] as usize;
                 let b = COMPUTERS.0[i][k] as usize;
 
-                let edges =
-                    u16x16::from_array(*COMPUTERS.0.get_unchecked(a).as_array().unwrap_unchecked());
-                if (edges.simd_eq(u16x16::splat(b as u16)).to_bitmask() & 0x1fff) != 0 {
+                if COMPUTERS.contains(a, b as u16) {
                     groups += 1;
 
                     let at = a >= T_START && a < T_START + 26;
@@ -78,15 +84,74 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
 }
 
 unsafe fn inner_p2(input: &[u8]) -> &'static str {
-    static mut OUTBUF: [u8; 64] = [0; 64];
+    static mut OUTBUF: [u8; 64] = [
+        0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0,
+        b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',',
+        0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0,
+    ];
     static mut COMPUTERS: Graph = Graph::new();
 
     let mut counts = [0; 26 * 26];
     COMPUTERS.read(&mut counts, input.as_ptr());
 
-    for i in 0..26 * 26 {}
+    for i in 0..26 * 26 {
+        if counts[i] == 0 {
+            continue;
+        }
 
-    std::str::from_raw_parts(OUTBUF.as_ptr(), 0)
+        let ids: &[u16; 16] = COMPUTERS.0.get_unchecked(i);
+        let adj: [u16x16; 13] = std::array::from_fn(|j| {
+            u16x16::from_array(
+                *COMPUTERS
+                    .0
+                    .get_unchecked(ids[j] as usize)
+                    .as_array()
+                    .unwrap_unchecked(),
+            )
+        });
+
+        let mut adjcounts: [u16; 16] = [0; 16];
+        for j in 0..13 {
+            let id = u16x16::splat(ids[j]);
+
+            for k in 0..13 {
+                if (adj[k].simd_eq(id).to_bitmask() & 0x1fff) != 0 {
+                    adjcounts[j] |= 1 << k;
+                }
+            }
+        }
+
+        let mut valid = 0;
+        for count in adjcounts {
+            valid += 1 * (count.count_ones() == 11) as usize;
+        }
+
+        if valid != 12 {
+            continue;
+        }
+
+        let mut clique: ArrayVec<u16, 13> = ArrayVec::new_const();
+        clique.push(i as u16);
+        for i in 0..13 {
+            if adjcounts[i].count_ones() == 11 {
+                clique.push(ids[i]);
+            }
+        }
+
+        debug_assert!(clique.len() == 13);
+
+        clique.sort_unstable();
+
+        for i in 0..13 {
+            let (a, b) = (clique.get_unchecked(i) / 26, clique.get_unchecked(i) % 26);
+            OUTBUF[i * 3] = a as u8 + b'a';
+            OUTBUF[i * 3 + 1] = b as u8 + b'a';
+        }
+
+        return std::str::from_raw_parts(OUTBUF.as_ptr(), 38);
+    }
+
+    std::hint::unreachable_unchecked();
 }
 
 pub fn part1(input: &str) -> u64 {
