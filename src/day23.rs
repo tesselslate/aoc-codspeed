@@ -59,8 +59,8 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
                 if (edges.simd_eq(u16x16::splat(b)).to_bitmask() & 0x1fff) != 0 {
                     groups += 1;
 
-                    if (a as u32 - 1).fast_div(d26) == (b't' - b'a') as u32
-                        || (b as u32 - 1).fast_div(d26) == (b't' - b'a') as u32
+                    if (a as u32).fast_div(d26) == (b't' - b'a') as u32
+                        || (b as u32).fast_div(d26) == (b't' - b'a') as u32
                     {
                         dupes += 1;
                     }
