@@ -2,8 +2,6 @@
 
 use std::simd::{cmp::SimdPartialEq, u16x16};
 
-use fastdiv::FastDiv;
-
 #[inline(always)]
 fn id(a: u8, b: u8) -> usize {
     (a - b'a') as usize * 26 + (b - b'a') as usize
@@ -40,7 +38,6 @@ impl Graph {
 
 unsafe fn inner_p1(input: &[u8]) -> u64 {
     const T_START: usize = (b't' - b'a') as usize * 26;
-    let d26 = (26u32).precompute_div();
 
     static mut COMPUTERS: Graph = Graph::new();
     COMPUTERS.read(input.as_ptr());
@@ -52,16 +49,14 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
         for j in 1..13 {
             for k in 0..j {
                 let a = COMPUTERS.0[i][j] as usize;
-                let b = COMPUTERS.0[i][k] as u16;
+                let b = COMPUTERS.0[i][k] as usize;
 
                 let edges =
                     u16x16::from_array(*COMPUTERS.0.get_unchecked(a).as_array().unwrap_unchecked());
-                if (edges.simd_eq(u16x16::splat(b)).to_bitmask() & 0x1fff) != 0 {
+                if (edges.simd_eq(u16x16::splat(b as u16)).to_bitmask() & 0x1fff) != 0 {
                     groups += 1;
 
-                    if (a as u32).fast_div(d26) == (b't' - b'a') as u32
-                        || (b as u32).fast_div(d26) == (b't' - b'a') as u32
-                    {
+                    if (a >= T_START && a < T_START + 26) || (b >= T_START && b < T_START + 26) {
                         dupes += 1;
                     }
                 }
