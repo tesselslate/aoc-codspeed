@@ -42,6 +42,7 @@ impl Graph {
     }
 }
 
+#[repr(align(64))]
 unsafe fn inner_p1(input: &[u8]) -> u64 {
     const T_START: usize = (b't' - b'a') as usize * 26;
 
@@ -83,6 +84,7 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
     groups - (dupes / 2) - (triplets / 3) * 2
 }
 
+#[repr(align(64))]
 unsafe fn inner_p2(input: &[u8]) -> &'static str {
     static mut OUTBUF: [u8; 64] = [
         0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0, b',', 0, 0,
