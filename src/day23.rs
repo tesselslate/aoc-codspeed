@@ -19,14 +19,11 @@ impl Graph {
     unsafe fn read(&mut self, mut input: *const u8) {
         let mut counts = [0u8; 26 * 26];
 
-        for i in 0..3380 {
+        for _ in 0..3380 {
             let a = id(*input, *input.add(1));
             let b = id(*input.add(3), *input.add(4));
 
-            if i != 3379 {
-                // i love undefined behavior!
-                input = input.add(6);
-            }
+            input = input.add(6);
 
             self.0.get_unchecked_mut(a)[*counts.get_unchecked(a) as usize] = b as u16;
             self.0.get_unchecked_mut(b)[*counts.get_unchecked(b) as usize] = a as u16;
