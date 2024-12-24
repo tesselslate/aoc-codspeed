@@ -1,11 +1,13 @@
 #![allow(static_mut_refs)]
 
-use std::{
-    ops::{Mul, Sub},
-    simd::{cmp::SimdPartialEq, num::SimdUint, simd_swizzle, u16x16, u8x16, u8x32},
-};
+use std::simd::{cmp::SimdPartialEq, u16x16};
 
 use arrayvec::ArrayVec;
+
+#[inline(always)]
+fn id(a: u8, b: u8) -> usize {
+    (a - b'a') as usize * 26 + (b - b'a') as usize
+}
 
 #[repr(align(64))]
 struct Graph([[u16; 16]; 26 * 26]);
@@ -23,53 +25,16 @@ impl Graph {
 
     #[inline(always)]
     unsafe fn read(&mut self, counts: &mut [u8; 26 * 26], mut input: *const u8) {
-        let alpha = u16x16::splat(b'a' as u16);
-        let mul = u16x16::from_array([26, 1, 26, 1, 26, 1, 26, 1, 26, 1, 26, 1, 26, 1, 26, 1]);
+        for _ in 0..3380 {
+            let a = id(*input, *input.add(1));
+            let b = id(*input.add(3), *input.add(4));
 
-        for _ in 0..845 {
-            let bytes = u8x32::from_array(
-                *std::slice::from_raw_parts(input, 32)
-                    .as_array()
-                    .unwrap_unchecked(),
-            );
-
-            let bytes: u8x16 = simd_swizzle!(
-                bytes,
-                [0, 1, 3, 4, 6, 7, 9, 10, 12, 13, 15, 16, 18, 19, 21, 22]
-            );
-
-            let ids: u16x16 = bytes.cast().sub(alpha).mul(mul);
-
-            let a = (ids[0] + ids[1]) as usize;
-            let b = (ids[2] + ids[3]) as usize;
-            let c = (ids[4] + ids[5]) as usize;
-            let d = (ids[6] + ids[7]) as usize;
-            let e = (ids[8] + ids[9]) as usize;
-            let f = (ids[10] + ids[11]) as usize;
-            let g = (ids[12] + ids[13]) as usize;
-            let h = (ids[14] + ids[15]) as usize;
+            input = input.add(6);
 
             self.0.get_unchecked_mut(a)[*counts.get_unchecked(a) as usize] = b as u16;
             self.0.get_unchecked_mut(b)[*counts.get_unchecked(b) as usize] = a as u16;
             *counts.get_unchecked_mut(a) += 1;
             *counts.get_unchecked_mut(b) += 1;
-
-            self.0.get_unchecked_mut(c)[*counts.get_unchecked(c) as usize] = d as u16;
-            self.0.get_unchecked_mut(d)[*counts.get_unchecked(d) as usize] = c as u16;
-            *counts.get_unchecked_mut(c) += 1;
-            *counts.get_unchecked_mut(d) += 1;
-
-            self.0.get_unchecked_mut(e)[*counts.get_unchecked(e) as usize] = f as u16;
-            self.0.get_unchecked_mut(f)[*counts.get_unchecked(f) as usize] = e as u16;
-            *counts.get_unchecked_mut(e) += 1;
-            *counts.get_unchecked_mut(f) += 1;
-
-            self.0.get_unchecked_mut(g)[*counts.get_unchecked(g) as usize] = h as u16;
-            self.0.get_unchecked_mut(h)[*counts.get_unchecked(h) as usize] = g as u16;
-            *counts.get_unchecked_mut(g) += 1;
-            *counts.get_unchecked_mut(h) += 1;
-
-            input = input.add(24);
         }
 
         debug_assert!(counts.iter().filter(|&&x| x == 13).count() == 520);
