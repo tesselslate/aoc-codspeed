@@ -72,12 +72,16 @@ impl Bits {
 }
 
 #[inline(always)]
-fn id(reg: [u8; 3]) -> (u16, u16) {
-    debug_assert!(reg[0] >= b'0' && reg[1] >= b'0' && reg[2] >= b'0');
+unsafe fn id(reg: *const u32) -> (u16, u16) {
+    let value = reg.read_unaligned();
+
+    debug_assert!(
+        (value & 0xFF) as u8 >= b'0' && (value >> 8) as u8 >= b'0' && (value >> 16) as u8 >= b'0'
+    );
 
     (
-        (reg[0] - b'a') as u16,
-        (reg[1] - b'0') as u16 * 128 + (reg[2] - b'0') as u16,
+        (value as u8 - b'a') as u16,
+        ((value >> 8) as u8 - b'0') as u16 * 128 + ((value >> 16) as u8 - b'0') as u16,
     )
 }
 
@@ -138,17 +142,17 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
 
             let out = match *input.add(4) {
                 b'A' => {
-                    dst = id([*input.add(15), *input.add(16), *input.add(17)]);
+                    dst = id(input.add(15).cast());
                     input = input.add(19);
                     bitx & bity
                 }
                 b'X' => {
-                    dst = id([*input.add(15), *input.add(16), *input.add(17)]);
+                    dst = id(input.add(15).cast());
                     input = input.add(19);
                     bitx ^ bity
                 }
                 b'O' => {
-                    dst = id([*input.add(14), *input.add(15), *input.add(16)]);
+                    dst = id(input.add(14).cast());
                     input = input.add(18);
                     bitx | bity
                 }
@@ -157,20 +161,20 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
 
             BITS.insert(dst.0 as usize, dst.1 as usize, out != 0);
         } else {
-            let a = id([*input, *input.add(1), *input.add(2)]);
+            let a = id(input.cast());
             let op = *input.add(4);
             let b: (u16, u16);
             let c: (u16, u16);
 
             match op {
                 b'A' | b'X' => {
-                    b = id([*input.add(8), *input.add(9), *input.add(10)]);
-                    c = id([*input.add(15), *input.add(16), *input.add(17)]);
+                    b = id(input.add(8).cast());
+                    c = id(input.add(15).cast());
                     input = input.add(19);
                 }
                 b'O' => {
-                    b = id([*input.add(7), *input.add(8), *input.add(9)]);
-                    c = id([*input.add(14), *input.add(15), *input.add(16)]);
+                    b = id(input.add(7).cast());
+                    c = id(input.add(14).cast());
                     input = input.add(18);
                 }
                 _ => std::hint::unreachable_unchecked(),
@@ -241,20 +245,20 @@ unsafe fn inner_p2(input: &[u8]) -> &'static str {
     let mut input = input.as_ptr().add(631);
 
     for _ in 0..222 {
-        let a = id([*input, *input.add(1), *input.add(2)]);
+        let a = id(input.cast());
         let op = *input.add(4);
         let b: (u16, u16);
         let c: (u16, u16);
 
         match op {
             b'A' | b'X' => {
-                b = id([*input.add(8), *input.add(9), *input.add(10)]);
-                c = id([*input.add(15), *input.add(16), *input.add(17)]);
+                b = id(input.add(8).cast());
+                c = id(input.add(15).cast());
                 input = input.add(19);
             }
             b'O' => {
-                b = id([*input.add(7), *input.add(8), *input.add(9)]);
-                c = id([*input.add(14), *input.add(15), *input.add(16)]);
+                b = id(input.add(7).cast());
+                c = id(input.add(14).cast());
                 input = input.add(18);
             }
             _ => std::hint::unreachable_unchecked(),
