@@ -223,7 +223,120 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
 }
 
 unsafe fn inner_p2(input: &[u8]) -> &'static str {
-    ""
+    static mut OUTBUF: [u8; 64] = [
+        0, 0, 0, b',', 0, 0, 0, b',', 0, 0, 0, b',', 0, 0, 0, b',', 0, 0, 0, b',', 0, 0, 0, b',',
+        0, 0, 0, b',', 0, 0, 0, b',', 0, 0, 0, b',', 0, 0, 0, b',', 0, 0, 0, b',', 0, 0, 0, b',',
+        0, 0, 0, b',', 0, 0, 0, b',', 0, 0, 0, b',', 0, 0, 0, b',',
+    ];
+
+    static mut GATES: [ArrayVec<(u16, u16, u16, u16, u16, u16), 96>; 26] =
+        [const { ArrayVec::new_const() }; 26];
+
+    GATES.iter_mut().for_each(|x| x.clear());
+
+    let mut x_and: [(u16, u16, u16, u16); 48] = [(0, 0, 0, 0); 48];
+    let mut x_xor: [(u16, u16, u16, u16); 48] = [(0, 0, 0, 0); 48];
+    let mut bad_z: ArrayVec<u16, 3> = ArrayVec::new_const();
+
+    let mut input = input.as_ptr().add(631);
+
+    for _ in 0..222 {
+        let a = id([*input, *input.add(1), *input.add(2)]);
+        let op = *input.add(4);
+        let b: (u16, u16);
+        let c: (u16, u16);
+
+        match op {
+            b'A' | b'X' => {
+                b = id([*input.add(8), *input.add(9), *input.add(10)]);
+                c = id([*input.add(15), *input.add(16), *input.add(17)]);
+                input = input.add(19);
+            }
+            b'O' => {
+                b = id([*input.add(7), *input.add(8), *input.add(9)]);
+                c = id([*input.add(14), *input.add(15), *input.add(16)]);
+                input = input.add(18);
+            }
+            _ => std::hint::unreachable_unchecked(),
+        };
+
+        if a.0 == (b'x' - b'a') as u16 || b.0 == (b'x' - b'a') as u16 {
+            let id = (a.1 / 128) * 10 + (a.1 % 128);
+
+            if op == b'X' {
+                debug_assert!(*x_xor.get_unchecked(id as usize) == (0, 0, 0, 0));
+
+                *x_xor.get_unchecked_mut(id as usize) = (b.0, b.1, c.0, c.1);
+            } else {
+                debug_assert!(op == b'A');
+                debug_assert!(*x_and.get_unchecked(id as usize) == (0, 0, 0, 0));
+
+                *x_and.get_unchecked_mut(id as usize) = (b.0, b.1, c.0, c.1);
+            }
+        }
+
+        if c.0 == (b'z' - b'a') as u16 {
+            if op != b'X' && c.1 != 0 && c.1 != 517 {
+                bad_z.push_unchecked(c.1);
+            }
+        }
+
+        GATES
+            .get_unchecked_mut(a.0 as usize)
+            .push_unchecked((op as u16, a.1, b.0, b.1, c.0, c.1));
+        GATES
+            .get_unchecked_mut(b.0 as usize)
+            .push_unchecked((op as u16, b.1, a.0, a.1, c.0, c.1));
+    }
+
+    debug_assert!(bad_z.len() == 3);
+
+    let mut swaps: ArrayVec<[u8; 3], 8> = ArrayVec::new_const();
+
+    for i in 0..3 {
+        let bad_z = *bad_z.get_unchecked(i);
+        let idx = (bad_z / 128) * 10 + (bad_z % 128);
+        swaps.push_unchecked([b'z', (bad_z / 128) as u8 + b'0', (bad_z % 128) as u8 + b'0']);
+
+        let xor = *x_xor.get_unchecked(idx as usize);
+        for &gate in GATES.get_unchecked(xor.2 as usize) {
+            let (op, a1, _, _, c0, c1) = gate;
+            if op == b'X' as u16 && a1 == xor.3 {
+                let (a, b) = ((c1 / 128) as u8, (c1 % 128) as u8);
+                swaps.push_unchecked([c0 as u8 + b'a', a + b'0', b + b'0']);
+                break;
+            }
+        }
+    }
+
+    for i in 0..=45 {
+        let xor = x_xor[i];
+
+        for &gate in GATES.get_unchecked(xor.2 as usize) {
+            if gate.1 == xor.3 && gate.0 == b'O' as u16 {
+                let (c0, c1) = (xor.2, xor.3);
+                let (a, b) = ((c1 / 128) as u8, (c1 % 128) as u8);
+                swaps.push_unchecked([c0 as u8 + b'a', a + b'0', b + b'0']);
+
+                let and = x_and[i];
+                let (c0, c1) = (and.2, and.3);
+                let (a, b) = ((c1 / 128) as u8, (c1 % 128) as u8);
+                swaps.push_unchecked([c0 as u8 + b'a', a + b'0', b + b'0']);
+                break;
+            }
+        }
+    }
+
+    swaps.sort_unstable();
+
+    for i in 0..8 {
+        let swap = *swaps.get_unchecked(i);
+        OUTBUF[i * 4] = swap[0];
+        OUTBUF[i * 4 + 1] = swap[1];
+        OUTBUF[i * 4 + 2] = swap[2];
+    }
+
+    std::str::from_raw_parts(OUTBUF.as_ptr(), 31)
 }
 
 pub fn part1(input: &str) -> u64 {
