@@ -166,19 +166,15 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
             let b: (u16, u16);
             let c: (u16, u16);
 
-            match op {
-                b'A' | b'X' => {
-                    b = id(input.add(8).cast());
-                    c = id(input.add(15).cast());
-                    input = input.add(19);
-                }
-                b'O' => {
-                    b = id(input.add(7).cast());
-                    c = id(input.add(14).cast());
-                    input = input.add(18);
-                }
-                _ => std::hint::unreachable_unchecked(),
-            };
+            if op != b'O' {
+                b = id(input.add(8).cast());
+                c = id(input.add(15).cast());
+                input = input.add(19);
+            } else {
+                b = id(input.add(7).cast());
+                c = id(input.add(14).cast());
+                input = input.add(18);
+            }
 
             GATES
                 .get_unchecked_mut(c.0 as usize)
@@ -250,19 +246,15 @@ unsafe fn inner_p2(input: &[u8]) -> &'static str {
         let b: (u16, u16);
         let c: (u16, u16);
 
-        match op {
-            b'A' | b'X' => {
-                b = id(input.add(8).cast());
-                c = id(input.add(15).cast());
-                input = input.add(19);
-            }
-            b'O' => {
-                b = id(input.add(7).cast());
-                c = id(input.add(14).cast());
-                input = input.add(18);
-            }
-            _ => std::hint::unreachable_unchecked(),
-        };
+        if op != b'O' {
+            b = id(input.add(8).cast());
+            c = id(input.add(15).cast());
+            input = input.add(19);
+        } else {
+            b = id(input.add(7).cast());
+            c = id(input.add(14).cast());
+            input = input.add(18);
+        }
 
         if a.0 == (b'x' - b'a') as u16 || b.0 == (b'x' - b'a') as u16 {
             let id = (a.1 / 128) * 10 + (a.1 % 128);
