@@ -135,7 +135,7 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
     for _ in 0..222 {
         let first = *input;
 
-        if first == b'x' || first == b'y' {
+        if first >= b'x' {
             let bit = (*input.add(1) - b'0') * 10 + (*input.add(2) - b'0');
             let (bitx, bity) = ((x >> bit) & 1, (y >> bit) & 1);
             let dst: (u16, u16);
