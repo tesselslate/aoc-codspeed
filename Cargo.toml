@@ -159,6 +159,10 @@ name = "day23"
 path = "src/bin/day23.rs"
 
 [[bin]]
+name = "day24"
+path = "src/bin/day24.rs"
+
+[[bin]]
 name = "day11_lut"
 path = "src/bin/day11_lut.rs"
 bench = false
