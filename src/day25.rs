@@ -209,6 +209,7 @@ unsafe fn inner_p1b(input: &[u8]) -> u32 {
         "vpcmpeqb {ydata2}, {ydata1}, {eqmask_lock}",
         "vpmovmskb {rdata1}, {ydata2}",
         "popcnt rax, {rdata1}",
+        "shl eax, 5",
         "mov dword ptr [{LOCKS}], eax",
 
         // column 2
@@ -216,6 +217,7 @@ unsafe fn inner_p1b(input: &[u8]) -> u32 {
         "vpcmpeqb {ydata2}, {ydata1}, {eqmask_lock}",
         "vpmovmskb {rdata1}, {ydata2}",
         "popcnt rax, {rdata1}",
+        "shl eax, 5",
         "mov dword ptr [{LOCKS}+4], eax",
 
         // column 3
@@ -223,6 +225,7 @@ unsafe fn inner_p1b(input: &[u8]) -> u32 {
         "vpcmpeqb {ydata2}, {ydata1}, {eqmask_lock}",
         "vpmovmskb {rdata1}, {ydata2}",
         "popcnt rax, {rdata1}",
+        "shl eax, 5",
         "mov dword ptr [{LOCKS}+8], eax",
 
         // column 4
@@ -230,6 +233,7 @@ unsafe fn inner_p1b(input: &[u8]) -> u32 {
         "vpcmpeqb {ydata2}, {ydata1}, {eqmask_lock}",
         "vpmovmskb {rdata1}, {ydata2}",
         "popcnt rax, {rdata1}",
+        "shl eax, 5",
         "mov dword ptr [{LOCKS}+12], eax",
 
         // column 5
@@ -237,6 +241,7 @@ unsafe fn inner_p1b(input: &[u8]) -> u32 {
         "vpcmpeqb {ydata2}, {ydata1}, {eqmask_lock}",
         "vpmovmskb {rdata1}, {ydata2}",
         "popcnt rax, {rdata1}",
+        "shl eax, 5",
         "mov dword ptr [{LOCKS}+16], eax",
 
         "dec {i:e}",
@@ -370,20 +375,14 @@ unsafe fn inner_p1b(input: &[u8]) -> u32 {
         "mov {i:e}, 250",
     "40:", // loop over all locks to sum possible pairs
         "mov eax, [{LOCKS}]",
-        "shl eax, 5",
-        "mov ecx, [{LOCKS}+4]",
-        "shl ecx, 5",
-        "mov edx, [{LOCKS}+8]",
-        "shl edx, 5",
-        "mov esi, [{LOCKS}+12]",
-        "shl esi, 5",
-        "mov edi, [{LOCKS}+16]",
-        "shl edi, 5",
-
         "vmovdqu {ydata1}, [{KEYS}+rax]",
+        "mov ecx, [{LOCKS}+4]",
         "vpand {ydata2}, {ydata1}, [{KEYS}+256+rcx]",
+        "mov edx, [{LOCKS}+8]",
         "vmovdqu {ydata3}, [{KEYS}+512+rdx]",
+        "mov esi, [{LOCKS}+12]",
         "vpand {ydata4}, {ydata3}, [{KEYS}+768+rsi]",
+        "mov edi, [{LOCKS}+16]",
         "vmovdqu {ydata5}, [{KEYS}+1024+rdi]",
         "vpand {ydata1}, {ydata2}, {ydata4}",
         "vpand {ydata3}, {ydata1}, {ydata5}",
