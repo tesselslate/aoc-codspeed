@@ -50,43 +50,41 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "cmp {rdata1}, 46",                     // test if grid is lock or key
         "je 22f",
     "21:", // parse loop (lock)
+        "vpcmpeqb {ydata1}, {inp_data}, {eqmask_lock}",
+        "vpmovmskb ecx, {ydata1}",
+
         // column 1
-        "vpand {ydata1}, {mask1}, {inp_data}",
-        "vpcmpeqb {ydata2}, {ydata1}, {eqmask_lock}",
-        "vpmovmskb {rdata1}, {ydata2}",
-        "popcnt rax, {rdata1}",
+        "mov eax, ecx",
+        "and eax, 0x1041041",
+        "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}], eax",
 
         // column 2
-        "vpand {ydata1}, {mask2}, {inp_data}",
-        "vpcmpeqb {ydata2}, {ydata1}, {eqmask_lock}",
-        "vpmovmskb {rdata1}, {ydata2}",
-        "popcnt rax, {rdata1}",
+        "mov eax, ecx",
+        "and eax, 0x2082082",
+        "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}+4], eax",
 
         // column 3
-        "vpand {ydata1}, {mask3}, {inp_data}",
-        "vpcmpeqb {ydata2}, {ydata1}, {eqmask_lock}",
-        "vpmovmskb {rdata1}, {ydata2}",
-        "popcnt rax, {rdata1}",
+        "mov eax, ecx",
+        "and eax, 0x4104104",
+        "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}+8], eax",
 
         // column 4
-        "vpand {ydata1}, {mask4}, {inp_data}",
-        "vpcmpeqb {ydata2}, {ydata1}, {eqmask_lock}",
-        "vpmovmskb {rdata1}, {ydata2}",
-        "popcnt rax, {rdata1}",
+        "mov eax, ecx",
+        "and eax, 0x8208208",
+        "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}+12], eax",
 
         // column 5
-        "vpand {ydata1}, {mask5}, {inp_data}",
-        "vpcmpeqb {ydata2}, {ydata1}, {eqmask_lock}",
-        "vpmovmskb {rdata1}, {ydata2}",
-        "popcnt rax, {rdata1}",
+        "mov eax, ecx",
+        "and eax, 0x10410410",
+        "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}+16], eax",
 
@@ -106,48 +104,46 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "mov rdx, 1",               // prepare OR bitmask
         "shl rdx, cl",              // store OR bitmask in rdx (1 << CL)
 
+        "vpcmpeqb {ydata1}, {inp_data}, {eqmask_key}",
+        "vpmovmskb edi, {ydata1}",
+
         // column 1
-        "vpand {ydata1}, {mask1}, {inp_data}",
-        "vpcmpeqb {ydata2}, {ydata1}, {eqmask_key}",
-        "vpmovmskb {rdata1}, {ydata2}",
-        "popcnt rax, {rdata1}",
-        "shl rax, 5",                       // multiply height by 32
+        "mov eax, edi",
+        "and eax, 0x1041041",
+        "popcnt eax, eax",
+        "shl eax, 5",                       // multiply height by 32
         "add rax, rsi",                     // add key_idx u64 offset
         "or [{KEYS} + rax], rdx",
 
         // column 2
-        "vpand {ydata1}, {mask2}, {inp_data}",
-        "vpcmpeqb {ydata2}, {ydata1}, {eqmask_key}",
-        "vpmovmskb {rdata1}, {ydata2}",
-        "popcnt rax, {rdata1}",
-        "shl rax, 5",                       // multiply height by 32
+        "mov eax, edi",
+        "and eax, 0x2082082",
+        "popcnt eax, eax",
+        "shl eax, 5",                       // multiply height by 32
         "add rax, rsi",                     // add key_idx u64 offset
         "or [{KEYS} + rax + 256], rdx",
 
         // column 3
-        "vpand {ydata1}, {mask3}, {inp_data}",
-        "vpcmpeqb {ydata2}, {ydata1}, {eqmask_key}",
-        "vpmovmskb {rdata1}, {ydata2}",
-        "popcnt rax, {rdata1}",
-        "shl rax, 5",                       // multiply height by 32
+        "mov eax, edi",
+        "and eax, 0x4104104",
+        "popcnt eax, eax",
+        "shl eax, 5",                       // multiply height by 32
         "add rax, rsi",                     // add key_idx u64 offset
         "or [{KEYS} + rax + 512], rdx",
 
         // column 4
-        "vpand {ydata1}, {mask4}, {inp_data}",
-        "vpcmpeqb {ydata2}, {ydata1}, {eqmask_key}",
-        "vpmovmskb {rdata1}, {ydata2}",
-        "popcnt rax, {rdata1}",
-        "shl rax, 5",                       // multiply height by 32
+        "mov eax, edi",
+        "and eax, 0x8208208",
+        "popcnt eax, eax",
+        "shl eax, 5",                       // multiply height by 32
         "add rax, rsi",                     // add key_idx u64 offset
         "or [{KEYS} + rax + 768], rdx",
 
         // column 5
-        "vpand {ydata1}, {mask5}, {inp_data}",
-        "vpcmpeqb {ydata2}, {ydata1}, {eqmask_key}",
-        "vpmovmskb {rdata1}, {ydata2}",
-        "popcnt rax, {rdata1}",
-        "shl rax, 5",                       // multiply height by 32
+        "mov eax, edi",
+        "and eax, 0x10410410",
+        "popcnt eax, eax",
+        "shl eax, 5",
         "add rax, rsi",                     // add key_idx u64 offset
         "or [{KEYS} + rax + 1024], rdx",
 
