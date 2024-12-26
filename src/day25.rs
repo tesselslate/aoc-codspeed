@@ -5,26 +5,6 @@ use std::simd::u8x32;
 #[inline]
 #[repr(align(64))]
 unsafe fn inner_p1(input: &[u8]) -> u32 {
-    const MASKS: [[u8; 32]; 5] = const {
-        let mut arrays = [[0; 32]; 5];
-
-        let mut i = 0;
-        while i < 5 {
-            let mut j = 0;
-            while j < 32 {
-                if j >= i && (j - i) % 6 == 0 {
-                    arrays[i][j] = 0xFF;
-                }
-
-                j += 1;
-            }
-
-            i += 1;
-        }
-
-        arrays
-    };
-
     #[repr(align(64))]
     struct Locks([u32; 1250]);
 
@@ -153,60 +133,60 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "add {inp}, 43",
         "jmp 20b",
     "30:", // post processing
-        "vmovdqu {mask1}, [{KEYS}+160]",
-        "vmovdqu {mask2}, [{KEYS}+416]",
-        "vmovdqu {mask3}, [{KEYS}+672]",
-        "vmovdqu {mask4}, [{KEYS}+928]",
-        "vmovdqu {mask5}, [{KEYS}+1184]",
-        "vpor {ydata1}, {mask1}, [{KEYS}+128]",
-        "vpor {ydata2}, {mask2}, [{KEYS}+384]",
-        "vpor {ydata3}, {mask3}, [{KEYS}+640]",
-        "vpor {ydata4}, {mask4}, [{KEYS}+896]",
-        "vpor {ydata5}, {mask5}, [{KEYS}+1152]",
+        "vmovdqu {ydata6}, [{KEYS}+160]",
+        "vmovdqu {ydata7}, [{KEYS}+416]",
+        "vmovdqu {ydata8}, [{KEYS}+672]",
+        "vmovdqu {ydata9}, [{KEYS}+928]",
+        "vmovdqu {ydata0}, [{KEYS}+1184]",
+        "vpor {ydata1}, {ydata6}, [{KEYS}+128]",
+        "vpor {ydata2}, {ydata7}, [{KEYS}+384]",
+        "vpor {ydata3}, {ydata8}, [{KEYS}+640]",
+        "vpor {ydata4}, {ydata9}, [{KEYS}+896]",
+        "vpor {ydata5}, {ydata0}, [{KEYS}+1152]",
 
         "vmovdqu [{KEYS}+128], {ydata1}",
         "vmovdqu [{KEYS}+384], {ydata2}",
         "vmovdqu [{KEYS}+640], {ydata3}",
         "vmovdqu [{KEYS}+896], {ydata4}",
         "vmovdqu [{KEYS}+1152], {ydata5}",
-        "vpor {mask1}, {ydata1}, [{KEYS}+96]",
-        "vpor {mask2}, {ydata2}, [{KEYS}+352]",
-        "vpor {mask3}, {ydata3}, [{KEYS}+608]",
-        "vpor {mask4}, {ydata4}, [{KEYS}+864]",
-        "vpor {mask5}, {ydata5}, [{KEYS}+1120]",
+        "vpor {ydata6}, {ydata1}, [{KEYS}+96]",
+        "vpor {ydata7}, {ydata2}, [{KEYS}+352]",
+        "vpor {ydata8}, {ydata3}, [{KEYS}+608]",
+        "vpor {ydata9}, {ydata4}, [{KEYS}+864]",
+        "vpor {ydata0}, {ydata5}, [{KEYS}+1120]",
 
-        "vmovdqu [{KEYS}+96], {mask1}",
-        "vmovdqu [{KEYS}+352], {mask2}",
-        "vmovdqu [{KEYS}+608], {mask3}",
-        "vmovdqu [{KEYS}+864], {mask4}",
-        "vmovdqu [{KEYS}+1120], {mask5}",
-        "vpor {ydata1}, {mask1}, [{KEYS}+64]",
-        "vpor {ydata2}, {mask2}, [{KEYS}+320]",
-        "vpor {ydata3}, {mask3}, [{KEYS}+576]",
-        "vpor {ydata4}, {mask4}, [{KEYS}+832]",
-        "vpor {ydata5}, {mask5}, [{KEYS}+1088]",
+        "vmovdqu [{KEYS}+96], {ydata6}",
+        "vmovdqu [{KEYS}+352], {ydata7}",
+        "vmovdqu [{KEYS}+608], {ydata8}",
+        "vmovdqu [{KEYS}+864], {ydata9}",
+        "vmovdqu [{KEYS}+1120], {ydata0}",
+        "vpor {ydata1}, {ydata6}, [{KEYS}+64]",
+        "vpor {ydata2}, {ydata7}, [{KEYS}+320]",
+        "vpor {ydata3}, {ydata8}, [{KEYS}+576]",
+        "vpor {ydata4}, {ydata9}, [{KEYS}+832]",
+        "vpor {ydata5}, {ydata0}, [{KEYS}+1088]",
 
         "vmovdqu [{KEYS}+64], {ydata1}",
         "vmovdqu [{KEYS}+320], {ydata2}",
         "vmovdqu [{KEYS}+576], {ydata3}",
         "vmovdqu [{KEYS}+832], {ydata4}",
         "vmovdqu [{KEYS}+1088], {ydata5}",
-        "vpor {mask1}, {ydata1}, [{KEYS}+32]",
-        "vpor {mask2}, {ydata2}, [{KEYS}+288]",
-        "vpor {mask3}, {ydata3}, [{KEYS}+544]",
-        "vpor {mask4}, {ydata4}, [{KEYS}+800]",
-        "vpor {mask5}, {ydata5}, [{KEYS}+1056]",
+        "vpor {ydata6}, {ydata1}, [{KEYS}+32]",
+        "vpor {ydata7}, {ydata2}, [{KEYS}+288]",
+        "vpor {ydata8}, {ydata3}, [{KEYS}+544]",
+        "vpor {ydata9}, {ydata4}, [{KEYS}+800]",
+        "vpor {ydata0}, {ydata5}, [{KEYS}+1056]",
 
-        "vmovdqu [{KEYS}+32], {mask1}",
-        "vmovdqu [{KEYS}+288], {mask2}",
-        "vmovdqu [{KEYS}+544], {mask3}",
-        "vmovdqu [{KEYS}+800], {mask4}",
-        "vmovdqu [{KEYS}+1056], {mask5}",
-        "vpor {ydata1}, {mask1}, [{KEYS}]",
-        "vpor {ydata2}, {mask2}, [{KEYS}+256]",
-        "vpor {ydata3}, {mask3}, [{KEYS}+512]",
-        "vpor {ydata4}, {mask4}, [{KEYS}+768]",
-        "vpor {ydata5}, {mask5}, [{KEYS}+1024]",
+        "vmovdqu [{KEYS}+32], {ydata6}",
+        "vmovdqu [{KEYS}+288], {ydata7}",
+        "vmovdqu [{KEYS}+544], {ydata8}",
+        "vmovdqu [{KEYS}+800], {ydata9}",
+        "vmovdqu [{KEYS}+1056], {ydata0}",
+        "vpor {ydata1}, {ydata6}, [{KEYS}]",
+        "vpor {ydata2}, {ydata7}, [{KEYS}+256]",
+        "vpor {ydata3}, {ydata8}, [{KEYS}+512]",
+        "vpor {ydata4}, {ydata9}, [{KEYS}+768]",
+        "vpor {ydata5}, {ydata0}, [{KEYS}+1024]",
 
         "vmovdqu [{KEYS}], {ydata1}",
         "vmovdqu [{KEYS}+256], {ydata2}",
@@ -259,16 +239,16 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         out("rdi") _,
 
         inp_data = out(ymm_reg) _,
-        mask1 = inout(ymm_reg) u8x32::from_array(MASKS[0]) => _,
-        mask2 = inout(ymm_reg) u8x32::from_array(MASKS[1]) => _,
-        mask3 = inout(ymm_reg) u8x32::from_array(MASKS[2]) => _,
-        mask4 = inout(ymm_reg) u8x32::from_array(MASKS[3]) => _,
-        mask5 = inout(ymm_reg) u8x32::from_array(MASKS[4]) => _,
         ydata1 = out(ymm_reg) _,
         ydata2 = out(ymm_reg) _,
         ydata3 = out(ymm_reg) _,
         ydata4 = out(ymm_reg) _,
         ydata5 = out(ymm_reg) _,
+        ydata6 = out(ymm_reg) _,
+        ydata7 = out(ymm_reg) _,
+        ydata8 = out(ymm_reg) _,
+        ydata9 = out(ymm_reg) _,
+        ydata0 = out(ymm_reg) _,
         eqmask_lock = inout(ymm_reg) u8x32::splat(b'#') => _,
         eqmask_key = inout(ymm_reg) u8x32::splat(b'.') => _,
 

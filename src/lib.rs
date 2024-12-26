@@ -1,6 +1,5 @@
 #![feature(array_chunks)]
 #![feature(clone_to_uninit)]
-#![feature(core_intrinsics)]
 #![feature(fn_align)]
 #![feature(iter_array_chunks)]
 #![feature(portable_simd)]
