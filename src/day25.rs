@@ -21,47 +21,42 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
     let mut sum = 0;
 
     core::arch::asm!(
-        "mov {i:e}, 500",                       // grid parse loop counter
-        "xor {key_idx:r}, {key_idx:r}",         // zero key index
+        "mov {i:e}, 500",
+        "xor {key_idx:r}, {key_idx:r}",
 
-    "20:", // parse loop
-        "vmovdqu {inp_data}, [{inp} + 6]",      // load input chunk
-        "movzx {rdata1}, byte ptr [{inp}]",     // load first input byte
-        "cmp {rdata1}, 46",                     // test if grid is lock or key
+    "20:",
+        "vmovdqu {inp_data}, [{inp} + 6]",
+        "movzx {rdata1}, byte ptr [{inp}]",
+        "cmp {rdata1}, 46",
         "je 22f",
-    "21:", // parse loop (lock)
+    "21:",
         "vpcmpeqb {ydata1}, {inp_data}, {eqmask_lock}",
         "vpmovmskb edi, {ydata1}",
 
-        // column 1
         "mov eax, edi",
         "and eax, 0x1041041",
         "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}], eax",
 
-        // column 2
         "mov eax, edi",
         "and eax, 0x2082082",
         "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}+4], eax",
 
-        // column 3
         "mov eax, edi",
         "and eax, 0x4104104",
         "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}+8], eax",
 
-        // column 4
         "mov eax, edi",
         "and eax, 0x8208208",
         "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}+12], eax",
 
-        // column 5
         "mov eax, edi",
         "and eax, 0x10410410",
         "popcnt eax, eax",
@@ -73,21 +68,18 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "add {LOCKS}, 20",
         "add {inp}, 43",
         "jmp 20b",
-    "22:", // parse loop (key)
-        // KEYS + (256*col) + 32*height + (8*(key_idx/64))
-        // rsi = (8*(key_idx/64))
-        "mov rcx, {key_idx:r}",     // copy key_idx to rcx
-        "mov rsi, {key_idx:r}",     // copy key_idx to rsi
-        "and rcx, 0x3F",            // store key_idx % 64 in CL (for shl)
-        "shr rsi, 3",               // store u64 offset (0, 8, 16, 24) in rsi
+    "22:",
+        "mov rcx, {key_idx:r}",
+        "mov rsi, {key_idx:r}",
+        "and rcx, 0x3F",
+        "shr rsi, 3",
         "and rsi, 0xF8",
-        "mov rdx, 1",               // prepare OR bitmask
-        "shl rdx, cl",              // store OR bitmask in rdx (1 << CL)
+        "mov rdx, 1",
+        "shl rdx, cl",
 
         "vpcmpeqb {ydata1}, {inp_data}, {eqmask_key}",
         "vpmovmskb edi, {ydata1}",
 
-        // column 1
         "mov eax, edi",
         "and eax, 0x1041041",
         "popcnt eax, eax",
@@ -95,7 +87,6 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "add rax, rsi",
         "or [{KEYS} + rax], rdx",
 
-        // column 2
         "mov eax, edi",
         "and eax, 0x2082082",
         "popcnt eax, eax",
@@ -103,7 +94,6 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "add rax, rsi",
         "or [{KEYS} + rax + 256], rdx",
 
-        // column 3
         "mov eax, edi",
         "and eax, 0x4104104",
         "popcnt eax, eax",
@@ -111,7 +101,6 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "add rax, rsi",
         "or [{KEYS} + rax + 512], rdx",
 
-        // column 4
         "mov eax, edi",
         "and eax, 0x8208208",
         "popcnt eax, eax",
@@ -119,7 +108,6 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "add rax, rsi",
         "or [{KEYS} + rax + 768], rdx",
 
-        // column 5
         "mov eax, edi",
         "and eax, 0x10410410",
         "popcnt eax, eax",
@@ -132,7 +120,7 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "inc {key_idx:e}",
         "add {inp}, 43",
         "jmp 20b",
-    "30:", // post processing
+    "30:",
         "vmovdqu {ydata6}, [{KEYS}+160]",
         "vmovdqu {ydata7}, [{KEYS}+416]",
         "vmovdqu {ydata8}, [{KEYS}+672]",
@@ -195,7 +183,7 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "vmovdqu [{KEYS}+1024], {ydata5}",
 
         "mov {i:e}, 250",
-    "40:", // loop over all locks to sum possible pairs
+    "40:",
         "mov eax, [{LOCKS}]",
         "mov ecx, [{LOCKS}+4]",
         "mov edx, [{LOCKS}+8]",
@@ -208,7 +196,6 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "vpand {ydata1}, {ydata1}, [{KEYS}+768+rsi]",
         "vpand {ydata1}, {ydata1}, [{KEYS}+1024+rdi]",
 
-        // todo: make this Not Suck
         "vmovdqu [{SCRATCH}], {ydata1}",
         "popcnt rax, [{SCRATCH}]",
         "popcnt rcx, [{SCRATCH}+8]",
