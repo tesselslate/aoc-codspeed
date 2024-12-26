@@ -3,6 +3,7 @@
 use std::simd::u8x32;
 
 #[inline]
+#[target_feature(enable = "avx")]
 #[repr(align(64))]
 unsafe fn inner_p1(input: &[u8]) -> u32 {
     const MASKS: [[u8; 32]; 5] = const {
@@ -31,12 +32,8 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
     #[repr(align(64))]
     struct Keys([u64; 160]);
 
-    #[repr(align(64))]
-    struct Scratch([u8; 64]);
-
     static mut LOCKS: Locks = Locks([0; 1250]);
     static mut KEYS: Keys = Keys([0; 160]);
-    static mut SCRATCH: Scratch = Scratch([0; 64]);
 
     let mut sum = 0;
 
@@ -232,15 +229,18 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "vpand {ydata1}, {ydata1}, [{KEYS}+768+rsi]",
         "vpand {ydata1}, {ydata1}, [{KEYS}+1024+rdi]",
 
-        // todo: make this Not Suck
-        "vmovdqu [{SCRATCH}], {ydata1}",
-        "popcnt rax, [{SCRATCH}]",
-        "popcnt rcx, [{SCRATCH}+8]",
-        "popcnt rdx, [{SCRATCH}+16]",
-        "popcnt rsi, [{SCRATCH}+24]",
+        "pextrq rax, {ydata1:x}, 0",
+        "pextrq rcx, {ydata1:x}, 1",
+        "vperm2i128 {ydata1}, {ydata1}, {ydata1}, 1",
+        "pextrq rdi, {ydata1:x}, 0",
+        "pextrq rsi, {ydata1:x}, 1",
+        "popcnt rax, rax",
+        "popcnt rcx, rcx",
+        "popcnt rdi, rdi",
+        "popcnt rsi, rsi",
         "add {sum:e}, eax",
         "add {sum:e}, ecx",
-        "add {sum:e}, edx",
+        "add {sum:e}, edi",
         "add {sum:e}, esi",
 
         "sub {LOCKS}, 20",
@@ -249,7 +249,6 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
 
         LOCKS = inout(reg) LOCKS.0.as_ptr() => _,
         KEYS = inout(reg) KEYS.0.as_ptr() => _,
-        SCRATCH = inout(reg) SCRATCH.0.as_ptr() => _,
         inp = inout(reg) input.as_ptr() => _,
         sum = inout(reg) sum,
 
