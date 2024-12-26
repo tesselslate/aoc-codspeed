@@ -5,7 +5,7 @@ use aoc_codspeed::day25;
 const INPUT: &str = include_str!("../../inputs/input25.txt");
 
 fn main() {
-    const N: usize = 1000;
+    const N: usize = 1;
     let start = Instant::now();
     for _ in 0..N {
         std::hint::black_box(day25::part1(std::hint::black_box(INPUT)));
