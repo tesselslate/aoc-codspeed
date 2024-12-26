@@ -2,6 +2,8 @@
 
 use std::simd::u8x32;
 
+#[inline]
+#[repr(align(64))]
 unsafe fn inner_p1(input: &[u8]) -> u32 {
     const MASKS: [[u8; 32]; 5] = const {
         let mut arrays = [[0; 32]; 5];
@@ -23,9 +25,18 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         arrays
     };
 
-    static mut LOCKS: [u32; 1250] = [0; 1250];
-    static mut KEYS: [u64; 160] = [0; 160];
-    static mut SCRATCH: [u8; 64] = [0; 64];
+    #[repr(align(64))]
+    struct Locks([u32; 1250]);
+
+    #[repr(align(64))]
+    struct Keys([u64; 160]);
+
+    #[repr(align(64))]
+    struct Scratch([u8; 64]);
+
+    static mut LOCKS: Locks = Locks([0; 1250]);
+    static mut KEYS: Keys = Keys([0; 160]);
+    static mut SCRATCH: Scratch = Scratch([0; 64]);
 
     let mut sum = 0;
 
@@ -237,9 +248,9 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "dec {i:e}",
         "jnz 40b",
 
-        LOCKS = inout(reg) LOCKS.as_ptr() => _,
-        KEYS = inout(reg) KEYS.as_ptr() => _,
-        SCRATCH = inout(reg) SCRATCH.as_ptr() => _,
+        LOCKS = inout(reg) LOCKS.0.as_ptr() => _,
+        KEYS = inout(reg) KEYS.0.as_ptr() => _,
+        SCRATCH = inout(reg) SCRATCH.0.as_ptr() => _,
         inp = inout(reg) input.as_ptr() => _,
         sum = inout(reg) sum,
 
