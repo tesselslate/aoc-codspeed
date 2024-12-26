@@ -254,6 +254,10 @@ pub fn part1(input: &str) -> u32 {
     unsafe { inner_p1(input.as_bytes()) }
 }
 
+pub fn part2(_: &str) -> u64 {
+    0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
