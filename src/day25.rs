@@ -148,8 +148,8 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
 
     let mut sum = 0;
 
-    for lock in LOCKS {
-        let [a, b, c, d, e] = lock;
+    for lock in &LOCKS {
+        let &[a, b, c, d, e] = lock;
 
         let a = u64x4::from_array(KEYS.0[0].get_unchecked(a as usize).0);
         let b = u64x4::from_array(KEYS.0[1].get_unchecked(b as usize).0);
