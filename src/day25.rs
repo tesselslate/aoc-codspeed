@@ -90,8 +90,8 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "mov rcx, {key_idx:r}",     // copy key_idx to rcx
         "mov rsi, {key_idx:r}",     // copy key_idx to rsi
         "and rcx, 0x3F",            // store key_idx % 64 in CL (for shl)
-        "shr rsi, 6",               // store u64 offset (0, 8, 16, 24) in rsi
-        "shl rsi, 3",
+        "shr rsi, 3",               // store u64 offset (0, 8, 16, 24) in rsi
+        "and rsi, 0xF8",
         "mov rdx, 1",               // prepare OR bitmask
         "shl rdx, cl",              // store OR bitmask in rdx (1 << CL)
 
