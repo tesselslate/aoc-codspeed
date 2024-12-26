@@ -65,6 +65,7 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
 
         "add {LOCKS}, 20",
         "add {inp}, 43",
+
         "dec {i:e}",
         "jnz 20b",
         "jmp 30f",
@@ -115,11 +116,12 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "add rax, rsi",
         "or [{KEYS} + rax + 1024], rdx",
 
-        "dec {i:e}",
-        "jz 30f",
         "inc {key_idx:e}",
         "add {inp}, 43",
-        "jmp 20b",
+
+        "dec {i:e}",
+        "jnz 20b",
+        "jmp 30f",
     "30:",
         "vmovdqu {ydata6}, [{KEYS}+160]",
         "vpor {ydata1}, {ydata6}, [{KEYS}+128]",
