@@ -210,9 +210,9 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "dec {i:e}",
         "jnz 40b",
 
-        LOCKS = inout(reg) LOCKS.0.as_ptr() => _,
-        KEYS = inout(reg) KEYS.0.as_ptr() => _,
-        SCRATCH = inout(reg) SCRATCH.0.as_ptr() => _,
+        LOCKS = inout(reg) LOCKS.0.as_mut_ptr() => _,
+        KEYS = inout(reg) KEYS.0.as_mut_ptr() => _,
+        SCRATCH = inout(reg) SCRATCH.0.as_mut_ptr() => _,
         inp = inout(reg) input.as_ptr() => _,
         sum = inout(reg) sum,
 
