@@ -4,6 +4,7 @@ use std::simd::u8x32;
 
 #[inline]
 #[repr(align(64))]
+#[target_feature(enable = "avx")]
 unsafe fn inner_p1(input: &[u8]) -> u32 {
     #[repr(align(64))]
     struct Locks([u32; 1250]);
