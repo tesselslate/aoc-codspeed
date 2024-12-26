@@ -18,7 +18,7 @@ impl Bits {
     }
 
     #[inline(always)]
-    unsafe fn bitor(&mut self, other: Self) {
+    unsafe fn bitor(&mut self, other: &Self) {
         self.0[0] |= other.0[0];
         self.0[1] |= other.0[1];
         self.0[2] |= other.0[2];
@@ -127,11 +127,21 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
     }
 
     for i in (1..=5).rev() {
-        KEYS.0[0][i - 1].bitor(KEYS.0[0][i]);
-        KEYS.0[1][i - 1].bitor(KEYS.0[1][i]);
-        KEYS.0[2][i - 1].bitor(KEYS.0[2][i]);
-        KEYS.0[3][i - 1].bitor(KEYS.0[3][i]);
-        KEYS.0[4][i - 1].bitor(KEYS.0[4][i]);
+        KEYS.0[0]
+            .get_unchecked_mut(i - 1)
+            .bitor(KEYS.0[0].get_unchecked(i));
+        KEYS.0[1]
+            .get_unchecked_mut(i - 1)
+            .bitor(KEYS.0[1].get_unchecked(i));
+        KEYS.0[2]
+            .get_unchecked_mut(i - 1)
+            .bitor(KEYS.0[2].get_unchecked(i));
+        KEYS.0[3]
+            .get_unchecked_mut(i - 1)
+            .bitor(KEYS.0[3].get_unchecked(i));
+        KEYS.0[4]
+            .get_unchecked_mut(i - 1)
+            .bitor(KEYS.0[4].get_unchecked(i));
     }
 
     debug_assert!(lock_idx == 250 && key_idx == 250);
