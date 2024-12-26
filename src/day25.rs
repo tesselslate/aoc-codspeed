@@ -4,7 +4,7 @@ use std::simd::u8x32;
 
 #[inline]
 #[repr(align(64))]
-#[target_feature(enable = "avx")]
+#[target_feature(enable = "avx,avx2")]
 unsafe fn inner_p1(input: &[u8]) -> u32 {
     #[repr(align(64))]
     struct Locks([u32; 1250]);
@@ -248,6 +248,8 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
     sum
 }
 
+#[inline]
+#[repr(align(64))]
 pub fn part1(input: &str) -> u32 {
     unsafe { inner_p1(input.as_bytes()) }
 }
