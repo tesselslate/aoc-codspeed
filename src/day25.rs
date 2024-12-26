@@ -39,6 +39,9 @@ impl Keys {
     }
 }
 
+#[target_feature(enable = "popcnt")]
+#[inline]
+#[repr(align(64))]
 unsafe fn inner_p1(input: &[u8]) -> u64 {
     const MASKS: [[u8; 32]; 5] = const {
         let mut arrays = [[0; 32]; 5];
