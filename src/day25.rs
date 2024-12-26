@@ -221,20 +221,19 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "mov {i:e}, 250",
     "40:", // loop over all locks to sum possible pairs
         "mov eax, [{LOCKS}]",
-        "vmovdqu {ydata1}, [{KEYS}+rax]",
         "mov ecx, [{LOCKS}+4]",
-        "vpand {ydata2}, {ydata1}, [{KEYS}+256+rcx]",
         "mov edx, [{LOCKS}+8]",
-        "vmovdqu {ydata3}, [{KEYS}+512+rdx]",
         "mov esi, [{LOCKS}+12]",
-        "vpand {ydata4}, {ydata3}, [{KEYS}+768+rsi]",
         "mov edi, [{LOCKS}+16]",
-        "vmovdqu {ydata5}, [{KEYS}+1024+rdi]",
-        "vpand {ydata1}, {ydata2}, {ydata4}",
-        "vpand {ydata3}, {ydata1}, {ydata5}",
+
+        "vmovdqu {ydata1}, [{KEYS}+rax]",
+        "vpand {ydata1}, {ydata1}, [{KEYS}+256+rcx]",
+        "vpand {ydata1}, {ydata1}, [{KEYS}+512+rdx]",
+        "vpand {ydata1}, {ydata1}, [{KEYS}+768+rsi]",
+        "vpand {ydata1}, {ydata1}, [{KEYS}+1024+rdi]",
 
         // todo: make this Not Suck
-        "vmovdqu [{SCRATCH}], {ydata3}",
+        "vmovdqu [{SCRATCH}], {ydata1}",
         "popcnt rax, [{SCRATCH}]",
         "popcnt rcx, [{SCRATCH}+8]",
         "popcnt rdx, [{SCRATCH}+16]",
