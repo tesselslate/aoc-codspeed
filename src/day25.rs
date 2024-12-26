@@ -37,11 +37,6 @@ impl Keys {
     const fn new() -> Self {
         Self([[Bits::new(); 6]; 5])
     }
-
-    #[inline(always)]
-    fn clear(&mut self) {
-        self.0 = [[Bits::new(); 6]; 5];
-    }
 }
 
 unsafe fn inner_p1(input: &[u8]) -> u64 {
@@ -67,9 +62,6 @@ unsafe fn inner_p1(input: &[u8]) -> u64 {
 
     static mut LOCKS: [[u32; 5]; 250] = [[0; 5]; 250];
     static mut KEYS: Keys = Keys::new();
-
-    LOCKS.iter_mut().for_each(|x| *x = [0; 5]);
-    KEYS.clear();
 
     let mut input = input.as_ptr();
     let (mut lock_idx, mut key_idx) = (0, 0);
