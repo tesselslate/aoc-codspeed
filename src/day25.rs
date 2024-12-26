@@ -51,38 +51,38 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "je 22f",
     "21:", // parse loop (lock)
         "vpcmpeqb {ydata1}, {inp_data}, {eqmask_lock}",
-        "vpmovmskb ecx, {ydata1}",
+        "vpmovmskb edi, {ydata1}",
 
         // column 1
-        "mov eax, ecx",
+        "mov eax, edi",
         "and eax, 0x1041041",
         "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}], eax",
 
         // column 2
-        "mov eax, ecx",
+        "mov eax, edi",
         "and eax, 0x2082082",
         "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}+4], eax",
 
         // column 3
-        "mov eax, ecx",
+        "mov eax, edi",
         "and eax, 0x4104104",
         "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}+8], eax",
 
         // column 4
-        "mov eax, ecx",
+        "mov eax, edi",
         "and eax, 0x8208208",
         "popcnt eax, eax",
         "shl eax, 5",
         "mov dword ptr [{LOCKS}+12], eax",
 
         // column 5
-        "mov eax, ecx",
+        "mov eax, edi",
         "and eax, 0x10410410",
         "popcnt eax, eax",
         "shl eax, 5",
@@ -111,32 +111,32 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "mov eax, edi",
         "and eax, 0x1041041",
         "popcnt eax, eax",
-        "shl eax, 5",                       // multiply height by 32
-        "add rax, rsi",                     // add key_idx u64 offset
+        "shl eax, 5",
+        "add rax, rsi",
         "or [{KEYS} + rax], rdx",
 
         // column 2
         "mov eax, edi",
         "and eax, 0x2082082",
         "popcnt eax, eax",
-        "shl eax, 5",                       // multiply height by 32
-        "add rax, rsi",                     // add key_idx u64 offset
+        "shl eax, 5",
+        "add rax, rsi",
         "or [{KEYS} + rax + 256], rdx",
 
         // column 3
         "mov eax, edi",
         "and eax, 0x4104104",
         "popcnt eax, eax",
-        "shl eax, 5",                       // multiply height by 32
-        "add rax, rsi",                     // add key_idx u64 offset
+        "shl eax, 5",
+        "add rax, rsi",
         "or [{KEYS} + rax + 512], rdx",
 
         // column 4
         "mov eax, edi",
         "and eax, 0x8208208",
         "popcnt eax, eax",
-        "shl eax, 5",                       // multiply height by 32
-        "add rax, rsi",                     // add key_idx u64 offset
+        "shl eax, 5",
+        "add rax, rsi",
         "or [{KEYS} + rax + 768], rdx",
 
         // column 5
@@ -144,7 +144,7 @@ unsafe fn inner_p1(input: &[u8]) -> u32 {
         "and eax, 0x10410410",
         "popcnt eax, eax",
         "shl eax, 5",
-        "add rax, rsi",                     // add key_idx u64 offset
+        "add rax, rsi",
         "or [{KEYS} + rax + 1024], rdx",
 
         "dec {i:e}",
