@@ -195,7 +195,7 @@ unsafe fn inner_p1b(input: &[u8]) -> u32 {
     let mut sum = 0;
 
     core::arch::asm!(
-        "mov {i:e}, 499",                       // grid parse loop counter
+        "mov {i:e}, 500",                       // grid parse loop counter
         "xor {key_idx:r}, {key_idx:r}",         // zero key index
 
     "20:", // parse loop
@@ -307,77 +307,77 @@ unsafe fn inner_p1b(input: &[u8]) -> u32 {
         "jmp 20b",
     "30:", // post processing
         "vmovdqu {mask1}, [{KEYS}+160]",
-        "vmovdqu {mask2}, [{KEYS}+416]",
-        "vmovdqu {mask3}, [{KEYS}+672]",
-        "vmovdqu {mask4}, [{KEYS}+928]",
-        "vmovdqu {mask5}, [{KEYS}+1184]",
-
         "vpor {ydata1}, {mask1}, [{KEYS}+128]",
+        "vmovdqu {mask2}, [{KEYS}+416]",
         "vpor {ydata2}, {mask2}, [{KEYS}+384]",
+        "vmovdqu {mask3}, [{KEYS}+672]",
         "vpor {ydata3}, {mask3}, [{KEYS}+640]",
+        "vmovdqu {mask4}, [{KEYS}+928]",
         "vpor {ydata4}, {mask4}, [{KEYS}+896]",
+        "vmovdqu {mask5}, [{KEYS}+1184]",
         "vpor {ydata5}, {mask5}, [{KEYS}+1152]",
+
         "vmovdqu [{KEYS}+128], {ydata1}",
-        "vmovdqu [{KEYS}+384], {ydata2}",
-        "vmovdqu [{KEYS}+640], {ydata3}",
-        "vmovdqu [{KEYS}+896], {ydata4}",
-        "vmovdqu [{KEYS}+1152], {ydata5}",
-
         "vpor {mask1}, {ydata1}, [{KEYS}+96]",
+        "vmovdqu [{KEYS}+384], {ydata2}",
         "vpor {mask2}, {ydata2}, [{KEYS}+352]",
+        "vmovdqu [{KEYS}+640], {ydata3}",
         "vpor {mask3}, {ydata3}, [{KEYS}+608]",
+        "vmovdqu [{KEYS}+896], {ydata4}",
         "vpor {mask4}, {ydata4}, [{KEYS}+864]",
+        "vmovdqu [{KEYS}+1152], {ydata5}",
         "vpor {mask5}, {ydata5}, [{KEYS}+1120]",
+
         "vmovdqu [{KEYS}+96], {mask1}",
-        "vmovdqu [{KEYS}+352], {mask2}",
-        "vmovdqu [{KEYS}+608], {mask3}",
-        "vmovdqu [{KEYS}+864], {mask4}",
-        "vmovdqu [{KEYS}+1120], {mask5}",
-
         "vpor {ydata1}, {mask1}, [{KEYS}+64]",
+        "vmovdqu [{KEYS}+352], {mask2}",
         "vpor {ydata2}, {mask2}, [{KEYS}+320]",
+        "vmovdqu [{KEYS}+608], {mask3}",
         "vpor {ydata3}, {mask3}, [{KEYS}+576]",
+        "vmovdqu [{KEYS}+864], {mask4}",
         "vpor {ydata4}, {mask4}, [{KEYS}+832]",
+        "vmovdqu [{KEYS}+1120], {mask5}",
         "vpor {ydata5}, {mask5}, [{KEYS}+1088]",
+
         "vmovdqu [{KEYS}+64], {ydata1}",
-        "vmovdqu [{KEYS}+320], {ydata2}",
-        "vmovdqu [{KEYS}+576], {ydata3}",
-        "vmovdqu [{KEYS}+832], {ydata4}",
-        "vmovdqu [{KEYS}+1088], {ydata5}",
-
         "vpor {mask1}, {ydata1}, [{KEYS}+32]",
+        "vmovdqu [{KEYS}+320], {ydata2}",
         "vpor {mask2}, {ydata2}, [{KEYS}+288]",
+        "vmovdqu [{KEYS}+576], {ydata3}",
         "vpor {mask3}, {ydata3}, [{KEYS}+544]",
+        "vmovdqu [{KEYS}+832], {ydata4}",
         "vpor {mask4}, {ydata4}, [{KEYS}+800]",
+        "vmovdqu [{KEYS}+1088], {ydata5}",
         "vpor {mask5}, {ydata5}, [{KEYS}+1056]",
-        "vmovdqu [{KEYS}+32], {mask1}",
-        "vmovdqu [{KEYS}+288], {mask2}",
-        "vmovdqu [{KEYS}+544], {mask3}",
-        "vmovdqu [{KEYS}+800], {mask4}",
-        "vmovdqu [{KEYS}+1056], {mask5}",
 
+        "vmovdqu [{KEYS}+32], {mask1}",
         "vpor {ydata1}, {mask1}, [{KEYS}]",
+        "vmovdqu [{KEYS}+288], {mask2}",
         "vpor {ydata2}, {mask2}, [{KEYS}+256]",
+        "vmovdqu [{KEYS}+544], {mask3}",
         "vpor {ydata3}, {mask3}, [{KEYS}+512]",
+        "vmovdqu [{KEYS}+800], {mask4}",
         "vpor {ydata4}, {mask4}, [{KEYS}+768]",
+        "vmovdqu [{KEYS}+1056], {mask5}",
         "vpor {ydata5}, {mask5}, [{KEYS}+1024]",
+
         "vmovdqu [{KEYS}], {ydata1}",
         "vmovdqu [{KEYS}+256], {ydata2}",
         "vmovdqu [{KEYS}+512], {ydata3}",
         "vmovdqu [{KEYS}+768], {ydata4}",
         "vmovdqu [{KEYS}+1024], {ydata5}",
 
-        "mov {i:e}, 249",
+        "mov {i:e}, 250",
     "40:", // loop over all locks to sum possible pairs
-        "mov eax, [{LOCKS}-20]",
-        "mov ecx, [{LOCKS}-16]",
-        "mov edx, [{LOCKS}-12]",
-        "mov esi, [{LOCKS}-8]",
-        "mov edi, [{LOCKS}-4]",
+        "mov eax, [{LOCKS}]",
         "shl eax, 5",
+        "mov ecx, [{LOCKS}+4]",
         "shl ecx, 5",
+        "mov edx, [{LOCKS}+8]",
         "shl edx, 5",
+        "mov esi, [{LOCKS}+12]",
         "shl esi, 5",
+        "mov edi, [{LOCKS}+16]",
         "shl edi, 5",
 
         "vmovdqu {ydata1}, [{KEYS}+rax]",
